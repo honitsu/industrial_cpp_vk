@@ -40,14 +40,14 @@
 > При компиляции cmake используются ключи `-std=c++20 -std=gnu++0x -Wall -pedantic -Werror -Wextra"`
 
 ## Сборка:
-cmake -Bbuild -H. --fresh
-cd build
-make 
+cmake -Bbuild -H. --fresh;
+cd build;
+make ;
 cd ..
 
 ## Запуск тестов:
-cd test-int
-./checker.sh
+cd test-int;
+./checker.sh;
 ../build/catch2 -s
 
 
