@@ -47,9 +47,9 @@
 - cd ..
 
 ## Запуск тестов:
-cd test-int;
-./checker.sh;
-../build/catch2 -s
+- cd test-int;
+- ./checker.sh;
+- ../build/catch2 -s
 
 
 
