@@ -54,6 +54,7 @@ public:
 
 	UString operator =(const std::u32string &str)
 	{
+		data_.clear();
 		assert(!str.empty());
 		for(auto c: str)
 		{
@@ -111,10 +112,10 @@ public:
 		size_t it = 0;
 		size_t len_ = data_.length();
 
-		while(it <= len_)
+		while(it < len_)
 		{
 			it += charlen(it);
-			ret++;
+			++ret;
 		}
 		return ret;
 	}
@@ -122,6 +123,8 @@ public:
 	// Подсчёт символов UTF8, которые занимают k байт
 	size_t count_by_size(size_t k) const
 	{
+		assert(k>=1);
+		assert(k<=4);
 		size_t ret = 0;
 		size_t tmp;
 		size_t len_ = data_.length();
@@ -143,13 +146,13 @@ public:
 	}
 
 private:
-	bool multibyte(unsigned char c)
+	bool multibyte(unsigned char c) const
 	{
 		return c >= 0x80 && c < 0xc0;
 	}
 
 public:
-	void push_back(std::string b)
+	void push_back(const std::string& b)
 	{
 		size_t len = b.length();
 		size_t i = 0;
@@ -371,6 +374,7 @@ public:
 		Iterator& operator++()
 		{ // Преинкремент
 			assert(this);
+			assert(str_);
 			curr_pos_ += str_->charlen(curr_pos_); // Смещаемся вперёд
 			return *this;
 		}
@@ -392,12 +396,15 @@ public:
 			// В "худшем" случае придётся пропустить 3 байта и лишь 4-й будет началом символа.
 			if(str_->multibyte(str_->data_[curr_pos_]))
 			{ // Это означает что предыдущий байт не ASCII символ.
+				assert(curr_pos_ > 0);
 				--curr_pos_;
 				if(str_->multibyte(str_->data_[curr_pos_]))
 				{
+					assert(curr_pos_ > 0);
 					--curr_pos_;
 					if(str_->multibyte(str_->data_[curr_pos_]))
 					{
+						assert(curr_pos_ > 0);
 						--curr_pos_;
 					}
 				}
