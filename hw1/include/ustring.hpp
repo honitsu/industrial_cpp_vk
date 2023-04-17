@@ -299,6 +299,7 @@ public:
 		std::string::iterator last = data_.end() - 1;
 		while ((*last &0xc0) == 0x80)
 		{
+			assert(last != data_.begin());
 			--last;
 		}
 
@@ -443,3 +444,4 @@ private:
 private:
 	std::string data_;
 };
+
