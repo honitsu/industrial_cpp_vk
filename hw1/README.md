@@ -41,14 +41,14 @@
 
 ## Сборка:
 - scl enable devtoolset-11 bash (без этого не работает `-std=c++20`)
-- cmake -Bbuild -H. --fresh;
-- cd build;
-- make;
+- cmake -Bbuild -H. --fresh
+- cd build
+- make
 - cd ..
 
 ## Запуск тестов:
-- cd test-int;
-- ./checker.sh;
+- cd test-int
+- ./checker.sh
 - ../build/catch2 -s
 
 
