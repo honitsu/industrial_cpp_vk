@@ -18,7 +18,7 @@ cat ${DATA_FILE} | while read len size b1 b2 b3 b4 line; do
 		# Корректируем счётчики, чтобы учесть добавление символа ASCII к строке
 		((len++))
 		((b1++))
-		for v in b1 b2 b3 b4 line; do
+		for v in len size b1 b2 b3 b4 line; do
 			rv=r$v
 			# Получаем значение переменной из имени, хранящемся в другой переменной
 			nameref var=${v}
