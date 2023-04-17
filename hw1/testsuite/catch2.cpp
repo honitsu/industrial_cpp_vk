@@ -68,9 +68,9 @@ TEST_CASE("UString", "[iterator]")
 	++i2; // Пропустим первые 3 символа во второй строке
 	++i2;
 	++i2;
-	for( auto i = u1.begin(); i != u1.end(); i++ ) {
+	for( auto i = u1.begin(); i != u1.end(); ++i ) {
 		REQUIRE(*i == *i2);
-		i2++;
+		++i2;
 	}
 }
 
@@ -79,7 +79,7 @@ TEST_CASE("UString", "[reverse][iterator]")
 	UString u1(U"Текст 2 для теста テキストをテストします。#ﻼ");
 	UString u2(U"ﻼ#。すましトステをトスキテ атсет ялд 2 тскеТ");
 	auto i2 = u2.end();
-	for( auto i = u1.begin(); i != u1.end(); i++ ) {
+	for( auto i = u1.begin(); i != u1.end(); ++i ) {
 		--i2;
 		REQUIRE(*i == *i2);
 	}
