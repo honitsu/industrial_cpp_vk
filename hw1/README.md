@@ -40,10 +40,10 @@
 > При компиляции cmake используются ключи `-std=c++20 -std=gnu++0x -Wall -pedantic -Werror -Wextra"`
 
 ## Сборка:
-- scl enable devtoolset-11 bash # без этого не работает `-std=c++20`
+- scl enable devtoolset-11 bash (без этого не работает `-std=c++20`)
 - cmake -Bbuild -H. --fresh;
 - cd build;
-- make ;
+- make;
 - cd ..
 
 ## Запуск тестов:
