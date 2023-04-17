@@ -3,6 +3,33 @@
 #include <catch2/catch_all.hpp>
 #include "ustring.hpp"
 
+TEST_CASE("UString", "[length]")
+{
+	UString tmp(U"Проверка");
+	REQUIRE(tmp.length() == 8);
+}
+
+TEST_CASE("UString", "[copy_constructor]")
+{
+	UString tmp2("\n");
+	tmp2 = U"Test";
+	CHECK(tmp2 .is_well());
+}
+
+TEST_CASE("UString", "[count_by_size]")
+{
+	UString tmp(U"QФ⡌⡌⡌🌌");
+	INFO("1 byte count test");
+	REQUIRE(tmp.count_by_size(1) == 1);
+	INFO("2 byte count test");
+	REQUIRE(tmp.count_by_size(2) == 1);
+	INFO("3 byte count test");
+	REQUIRE(tmp.count_by_size(3) == 3);
+	INFO("4 byte count test");
+	REQUIRE(tmp.count_by_size(4) == 1);
+	CHECK_THROWS(tmp.count_by_size(9));
+}
+
 TEST_CASE("UString", "[size]")
 {
 	UString u1(U"﴾Измеряем размер текста﴿");
