@@ -25,7 +25,7 @@ public:
 	UString &operator +=(const UString &str)
 	{
 		assert(this);
-		data_ += str.data_;
+		data_ = str.data_ + data_;
 		return *this;
 	}
 
@@ -86,7 +86,7 @@ private:
 	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
-	size_t charlen(size_t it) const
+	size_t charlen(size_t it)
 	{
 		size_t ret;
 
@@ -106,13 +106,13 @@ private:
 		return ret;
 	}
 public:
-	size_t length() const
+	size_t length()
 	{
 		size_t ret = 0; // Возвращаемое значение
 		size_t it = 0;
 		size_t len_ = data_.length();
 
-		while(it < len_)
+		while(it <= len_)
 		{
 			it += charlen(it);
 			++ret;
@@ -121,10 +121,9 @@ public:
 	}
 
 	// Подсчёт символов UTF8, которые занимают k байт
-	size_t count_by_size(size_t k) const
+	size_t count_by_size(size_t k)
 	{
-		assert(k>=1);
-		assert(k<=4);
+		assert(k >= 1 && k <= 4);
 		size_t ret = 0;
 		size_t tmp;
 		size_t len_ = data_.length();
@@ -139,20 +138,20 @@ public:
 		return ret;
 	}
 
-	size_t size() const
+	size_t size()
 	{
 		// Размер в байтах
 		return data_.length();
 	}
 
 private:
-	bool multibyte(unsigned char c) const
+	bool multibyte(unsigned char c)
 	{
-		return c >= 0x80 && c < 0xc0;
+		return c >= 0x80 && c < 0xc0; // return (c & 0xc0) == 0x80;
 	}
 
 public:
-	void push_back(const std::string& b)
+	void push_back(const std::string &b)
 	{
 		size_t len = b.length();
 		size_t i = 0;
@@ -299,7 +298,6 @@ public:
 		std::string::iterator last = data_.end() - 1;
 		while ((*last &0xc0) == 0x80)
 		{
-			assert(last != data_.begin());
 			--last;
 		}
 
@@ -326,7 +324,7 @@ public:
 			1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 			11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 		*/
-		char32_t operator* ()const
+		char32_t operator* ()
 		{
 			char32_t codePoint = 0;
 			char firstByte = str_->data_[curr_pos_];
@@ -375,7 +373,7 @@ public:
 		Iterator& operator++()
 		{ // Преинкремент
 			assert(this);
-			assert(str_);
+			assert(str_); // Проверяем существование родителя
 			curr_pos_ += str_->charlen(curr_pos_); // Смещаемся вперёд
 			return *this;
 		}
@@ -399,6 +397,7 @@ public:
 			{ // Это означает что предыдущий байт не ASCII символ.
 				assert(curr_pos_ > 0);
 				--curr_pos_;
+				// Добавить проверку на <0
 				if(str_->multibyte(str_->data_[curr_pos_]))
 				{
 					assert(curr_pos_ > 0);
@@ -438,10 +437,9 @@ private:
 	{
 		assert(this);
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
-	}
+		}
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 
 private:
 	std::string data_;
 };
-
