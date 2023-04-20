@@ -181,7 +181,7 @@ public:
 			throw std::runtime_error("Обнаружен некорректный utf-8 символ: " + b);
 	}
 	// Метод разбирает codePoint и добавляет 1-4 символа в строку data_[]
-	void push_back(char32_t utf32)
+	void push_back(const char32_t utf32)
 	{
 		if(utf32 < 0x7f)
 		// 1 байт
