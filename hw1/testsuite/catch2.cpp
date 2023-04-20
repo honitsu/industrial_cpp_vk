@@ -3,6 +3,14 @@
 #include <catch2/catch_all.hpp>
 #include "ustring.hpp"
 
+TEST_CASE("UString", "[std_string]")
+{
+	UString u1("123");
+	REQUIRE(u1.length() == 3);
+	u1 = "";
+	REQUIRE(u1.length() == 0);
+}
+
 TEST_CASE("UString", "[size]")
 {
 	UString u1(U"﴾Измеряем размер текста﴿");
@@ -23,7 +31,7 @@ TEST_CASE("UString", "[push_back]")
 {
 	UString u1("");
 	UString u2(U"เสน");
-	u1.push_back("เ");
+	u1.push_back(U"เ");
 	u1.push_back("ส");
 	u1.push_back("น");
 	REQUIRE(u1 == u2);
