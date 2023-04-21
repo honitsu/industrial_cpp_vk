@@ -419,7 +419,7 @@ public:
 		}
 
 		bool operator==(const Iterator& rhs) const { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
-		bool operator!=(const Iterator& rhs) const { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; } // ||, а не &&, иначе теряется логика
+		bool operator!=(const Iterator& rhs) const { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
 private:
 		UString * str_;
 		size_t curr_pos_ = 0; // Текущая позиция итератора в utf8 строке
