@@ -25,7 +25,7 @@ public:
 	UString &operator +=(const UString &str)
 	{
 		assert(this);
-		data_ += str.data_; //правильный порядок
+		data_ += str.data_;
 		return *this;
 	}
 
@@ -86,7 +86,7 @@ private:
 	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
-	size_t charlen(size_t it) const
+	size_t charlen(size_t it) const // эффективнее передача по значению
 	{
 		size_t ret;
 
@@ -145,7 +145,7 @@ public:
 	}
 
 private:
-	bool multibyte(unsigned char c)
+	bool multibyte(unsigned char c) const
 	{
 		return c >= 0x80 && c < 0xc0; // return (c & 0xc0) == 0x80;
 	}
@@ -325,7 +325,7 @@ public:
 			1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 			11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 		*/
-		char32_t operator* () const
+		char32_t operator* ()const
 		{
 			char32_t codePoint = 0;
 			char firstByte = str_->data_[curr_pos_];
@@ -390,7 +390,6 @@ public:
 		Iterator& operator--()
 		{ // Предекремент
 			assert(this);
-			assert(str_); // Проверяем существование родителя
 			if(curr_pos_ > 0)
 				--curr_pos_;
 
