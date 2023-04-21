@@ -25,7 +25,7 @@ public:
 	UString &operator +=(const UString &str)
 	{
 		assert(this);
-		data_ = str.data_ + data_;
+		data_ += str.data_; //правильный порядок
 		return *this;
 	}
 
@@ -86,7 +86,7 @@ private:
 	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
-	size_t charlen(size_t it)
+	size_t charlen(size_t it) 
 	{
 		size_t ret;
 
@@ -106,13 +106,13 @@ private:
 		return ret;
 	}
 public:
-	size_t length()
+	size_t length() 
 	{
 		size_t ret = 0; // Возвращаемое значение
 		size_t it = 0;
 		size_t len_ = data_.length();
 
-		while(it <= len_)
+		while(it < len_)
 		{
 			it += charlen(it);
 			++ret;
@@ -121,7 +121,7 @@ public:
 	}
 
 	// Подсчёт символов UTF8, которые занимают k байт
-	size_t count_by_size(size_t k)
+	size_t count_by_size(size_t k) 
 	{
 		assert(k >= 1 && k <= 4);
 		size_t ret = 0;
@@ -138,7 +138,7 @@ public:
 		return ret;
 	}
 
-	size_t size()
+	size_t size() 
 	{
 		// Размер в байтах
 		return data_.length();
@@ -389,22 +389,20 @@ public:
 		Iterator& operator--()
 		{ // Предекремент
 			assert(this);
+			assert(str_); // Проверяем существование родителя
 			if(curr_pos_ > 0)
 				--curr_pos_;
 
 			// В "худшем" случае придётся пропустить 3 байта и лишь 4-й будет началом символа.
 			if(str_->multibyte(str_->data_[curr_pos_]))
 			{ // Это означает что предыдущий байт не ASCII символ.
-				assert(curr_pos_ > 0);
 				--curr_pos_;
 				// Добавить проверку на <0
 				if(str_->multibyte(str_->data_[curr_pos_]))
 				{
-					assert(curr_pos_ > 0);
 					--curr_pos_;
 					if(str_->multibyte(str_->data_[curr_pos_]))
 					{
-						assert(curr_pos_ > 0);
 						--curr_pos_;
 					}
 				}
@@ -421,7 +419,7 @@ public:
 		}
 
 		bool operator==(const Iterator& rhs) const { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
-		bool operator!=(const Iterator& rhs) const { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
+		bool operator!=(const Iterator& rhs) const { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; } // ||, а не &&, иначе теряется логика
 private:
 		UString * str_;
 		size_t curr_pos_ = 0; // Текущая позиция итератора в utf8 строке
@@ -437,7 +435,7 @@ private:
 	{
 		assert(this);
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
-		}
+	}
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 
 private:
