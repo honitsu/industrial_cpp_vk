@@ -86,7 +86,7 @@ private:
 	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
-	size_t charlen(size_t it)
+	size_t charlen(size_t it) const
 	{
 		size_t ret;
 
@@ -106,7 +106,7 @@ private:
 		return ret;
 	}
 public:
-	size_t length()
+	size_t length() const
 	{
 		size_t ret = 0; // Возвращаемое значение
 		size_t it = 0;
@@ -121,7 +121,7 @@ public:
 	}
 
 	// Подсчёт символов UTF8, которые занимают k байт
-	size_t count_by_size(size_t k)
+	size_t count_by_size(size_t k) const
 	{
 		assert(k >= 1 && k <= 4);
 		size_t ret = 0;
@@ -138,7 +138,7 @@ public:
 		return ret;
 	}
 
-	size_t size()
+	size_t size() const
 	{
 		// Размер в байтах
 		return data_.length();
@@ -298,6 +298,7 @@ public:
 		std::string::iterator last = data_.end() - 1;
 		while ((*last &0xc0) == 0x80)
 		{
+			assert(last != data_.begin());
 			--last;
 		}
 
@@ -324,7 +325,7 @@ public:
 			1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 			11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 		*/
-		char32_t operator* ()
+		char32_t operator* () const
 		{
 			char32_t codePoint = 0;
 			char firstByte = str_->data_[curr_pos_];
