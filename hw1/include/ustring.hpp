@@ -25,7 +25,7 @@ public:
 	UString &operator +=(const UString &str)
 	{
 		assert(this);
-		data_ += str.data_;
+		data_ += str.data_; //правильный порядок
 		return *this;
 	}
 
@@ -325,7 +325,7 @@ public:
 			1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 			11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 		*/
-		char32_t operator* ()const
+		char32_t operator* () const
 		{
 			char32_t codePoint = 0;
 			char firstByte = str_->data_[curr_pos_];
@@ -382,6 +382,7 @@ public:
 		Iterator operator++(int)
 		{ // Постинкремент
 			assert(this);
+			assert(str_); // Проверяем существование родителя
 			Iterator save_pos_ = *this; // Запоминаем текущее значение
 			++*this; // Используем преинкремент
 			return save_pos_; // Возвращаем запомненное значение
@@ -390,6 +391,7 @@ public:
 		Iterator& operator--()
 		{ // Предекремент
 			assert(this);
+			assert(str_); // Проверяем существование родителя
 			if(curr_pos_ > 0)
 				--curr_pos_;
 
@@ -416,6 +418,7 @@ public:
 		Iterator operator--(int)
 		{ // Постдекремент
 			assert(this);
+			assert(str_); // Проверяем существование родителя
 			Iterator save_pos_ = *this; // Запоминаем текущее значение
 			--*this; // Используем предекремент
 			return save_pos_; // Возвращаем запомненное значение
