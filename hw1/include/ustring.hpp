@@ -396,13 +396,16 @@ public:
 			// В "худшем" случае придётся пропустить 3 байта и лишь 4-й будет началом символа.
 			if(str_->multibyte(str_->data_[curr_pos_]))
 			{ // Это означает что предыдущий байт не ASCII символ.
+				assert(curr_pos_ > 0);
 				--curr_pos_;
 				// Добавить проверку на <0
 				if(str_->multibyte(str_->data_[curr_pos_]))
 				{
+					assert(curr_pos_ > 0);
 					--curr_pos_;
 					if(str_->multibyte(str_->data_[curr_pos_]))
 					{
+						assert(curr_pos_ > 0);
 						--curr_pos_;
 					}
 				}
