@@ -25,7 +25,7 @@ public:
 	UString &operator +=(const UString &str)
 	{
 		assert(this);
-		data_ = str.data_ + data_;
+		data_ += str.data_; //правильный порядок
 		return *this;
 	}
 
@@ -112,7 +112,7 @@ public:
 		size_t it = 0;
 		size_t len_ = data_.length();
 
-		while(it <= len_)
+		while(it < len_)
 		{
 			it += charlen(it);
 			++ret;
@@ -389,6 +389,7 @@ public:
 		Iterator& operator--()
 		{ // Предекремент
 			assert(this);
+			assert(str_); // Проверяем существование родителя
 			if(curr_pos_ > 0)
 				--curr_pos_;
 
@@ -437,7 +438,7 @@ private:
 	{
 		assert(this);
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
-		}
+	}
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 
 private:

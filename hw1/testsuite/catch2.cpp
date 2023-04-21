@@ -3,6 +3,14 @@
 #include <catch2/catch_all.hpp>
 #include "ustring.hpp"
 
+TEST_CASE("UString", "[length]")
+{
+	UString u1(U"﴾Измеряем длину текста для проверки﴿");
+	REQUIRE(u1.length() == 36);
+	u1 = "";
+	REQUIRE(u1.length() == 0);
+}
+
 TEST_CASE("UString", "[std_string]")
 {
 	UString u1("123");
@@ -17,6 +25,18 @@ TEST_CASE("UString", "[size]")
 	REQUIRE(u1.size() == 48);
 	u1 = "";
 	REQUIRE(u1.size() == 0);
+}
+
+TEST_CASE("UString", "[add]")
+{
+	UString u1(U"Строка ");
+	UString u2(U"хорошая.");
+	UString u3(U"Строка хорошая.");
+	u1 += u2;
+	REQUIRE(u1 == u3);
+	u1 = u1 + u2;
+	u3 = U"Строка хорошая.хорошая.";
+	REQUIRE(u1 == u3);
 }
 
 TEST_CASE("UString", "[not_equal]")
