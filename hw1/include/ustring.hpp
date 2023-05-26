@@ -29,7 +29,7 @@ public:
 		return *this;
 	}
 
-	UString operator =(const std::string &mystr)
+	UString operator =(const std::string &mystr) // не хватает &
 	{
 		assert(this);
 		if( data_ != mystr )
