@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iterator>
 #include <cassert>
 #include <iostream>
@@ -13,10 +14,41 @@ class UString
 {
 public:
 	UString() = default;
-	UString(const std::string &str): data_(str) {}
+	UString(const std::string &str)
+	{
+		// "Разная логика у конструктора от string и оператора присваивания"
+		//
+		// Меняем конструктор на более сложный вариант.
+		// Теперь невозможно выполнить инициализацию некорректными UTF8 символами, т.к.
+		// метод push_back выполняет входной контроль данных.
+		// Тест "[is_well]" пришлось переделать.
+
+		if( data_ != str ) // Такое совпадение возможно только для пустой строки, но
+				   // ради унификации методов оставляем проверку.
+		{
+			size_t len_ = str.length();
+			data_.clear();
+			if( len_ > 0 )
+			{
+				for(size_t i = 0; i < len_; ++i )
+				{
+					push_back(str.substr(i));
+				}
+			}
+		}
+#ifdef DEBUG
+		else
+			debug_ = "Skip assigment of the same text in constructor.";
+#endif
+	}
 
 	UString(const std::u32string &str)
 	{
+		// В данном методе невозможно сравнить что-то со строкой u32string, 
+		// т.к. класс не хранит строку в таком виде, а только в преобразованном
+		// который выяснить заранее нельзя.
+		// Поэтому возможна ситуация, когда присваивание не поменяет результат, но
+		// код всё равно выполнится.
 		for(auto c: str)
 			push_back(c);
 	}
@@ -24,38 +56,43 @@ public:
 	// Операторы
 	UString &operator +=(const UString &str)
 	{
-		assert(this);
+//		assert(this);	
 		data_ += str.data_; //правильный порядок
 		return *this;
 	}
 
-	UString operator =(const std::string &mystr)
+	UString &operator =(const std::string &str)
 	{
-		assert(this);
-		if( data_ != mystr )
+		if( data_ != str )
 		{
-			size_t i;
-			size_t s_len;
-			size_t len_ = mystr.length();
-
+			size_t len_ = str.length();
 			data_.clear();
-			for (i = 0; i < len_; )
+			if( len_ > 0 )
 			{
-				s_len = size();	// Выясняем текущий размер строки UTF в байтах
-				push_back(mystr.substr(i));
-				if (s_len == size()) // Размер не изменился
-					++i;
-				else
-					i += size() - s_len;
+				size_t s_len;
+				for(size_t i = 0; i < len_; )
+				{
+					s_len = size();	// Выясняем текущий размер строки UTF в байтах
+					push_back(str.substr(i));
+					if (s_len == size()) // Размер не изменился
+						++i;
+					else
+						i += size() - s_len;
+				}
 			}
 		}
+#ifdef		DEBUG
+		else
+			debug_ = "Skip assigment of the same text.";
+#endif
 		return *this;
 	}
 
-	UString operator =(const std::u32string &str)
+	UString &operator =(const std::u32string &str)
 	{
+		// то есть программа должна падать если мы копируем пустую строку?
+//		assert(!str.empty());
 		data_.clear();
-		assert(!str.empty());
 		for(auto c: str)
 		{
 			push_back(c);
@@ -145,7 +182,7 @@ public:
 	}
 
 private:
-	bool multibyte(unsigned char c) const
+	bool multibyte(unsigned char c) const // Продолжение символа utf8
 	{
 		return c >= 0x80 && c < 0xc0; // return (c & 0xc0) == 0x80;
 	}
@@ -153,131 +190,137 @@ private:
 public:
 	void push_back(const std::string &b)
 	{
+		// Выносим все вызовы push_back в цикл и
+		// Переносим вызовы multibyte в отдельный цикл
 		size_t len = b.length();
 		size_t i = 0;
+		size_t usize = 0; // Признак некорректного символа
 		if (len > 0 && ((b[i] & 0x80) == 0))
 		{
-			data_.push_back(b[i]);
+			usize = 1;
 		}
-		else if (len > 1 && ((b[i] & 0xe0) == 0xc0) && multibyte(b[i + 1]))
+		else if (len > 1 && ((b[i] & 0xe0) == 0xc0))
 		{
-			data_.push_back(b[i]);
-			data_.push_back(b[i + 1]);
+			usize = 2;
 		}
-		else if (len > 2 && ((b[i] & 0xf0) == 0xe0) && multibyte(b[i + 1]) && multibyte(b[i + 2]))
+		else if (len > 2 && ((b[i] & 0xf0) == 0xe0))
 		{
-			data_.push_back(b[i]);
-			data_.push_back(b[i + 1]);
-			data_.push_back(b[i + 2]);
+			usize = 3;
 		}
-		else if (len > 3 && ((b[i]& 0xf8) == 0xf0) &&  multibyte(b[i + 1]) && multibyte(b[i + 2]) && multibyte(b[i + 3]))
+		else if (len > 3 && ((b[i]& 0xf8) == 0xf0))
 		{
-			data_.push_back(b[i]);
-			data_.push_back(b[i + 1]);
-			data_.push_back(b[i + 2]);
-			data_.push_back(b[i + 3]);
+			usize = 4;
 		}
-		else
+		if( usize >= 2 ) // Заявленный размер известен, проверяем байты 2..4
+			for( size_t j = 1; j < usize; ++j )
+				if( !multibyte(b[i + j]) )
+				{
+					usize = 0;
+					break;
+				}
+		if( usize == 0 )
 			throw std::runtime_error("Обнаружен некорректный utf-8 символ: " + b);
+		for( size_t j = 0; j < usize; ++j )
+			data_.push_back(b[i + j]);
 	}
 	// Метод разбирает codePoint и добавляет 1-4 символа в строку data_[]
 	void push_back(const char32_t utf32)
 	{
+		// Ликвидация повторов, указанных ниже, удлинняет текст программы и ухудшает читаемость
+/*
 		if(utf32 < 0x7f)
-		// 1 байт
+		{ // 1 байт
 			data_.push_back((unsigned char) utf32);
+		}
 		else if(utf32 < 0x7ff)
 		{ // 2 байта
-			data_.push_back((unsigned char) 0b1100'0000 + (utf32 >> 6));
-			data_.push_back((unsigned char) 0b1000'0000 + (utf32 & 0b0011'1111));
+			data_.push_back((unsigned char) (0xc0 + (utf32 >> 6)));			// Уникальная строка
+			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора
 		}
 		else if(utf32 < 0x10000)
 		{ // 3 байта
-			data_.push_back((unsigned char) (0b1110'0000 + (utf32 >> 12)));
-			data_.push_back((unsigned char) (0b1000'0000 + ((utf32 >> 6) & 0b0011'1111)));
-			data_.push_back((unsigned char) (0b1000'0000 + (utf32 & 0b0011'1111)));
+			data_.push_back((unsigned char) (0xe0 + (utf32 >> 12)));		// Уникальная строка
+			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));	// 2 повтора
+			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора см.выше
 		}
 		else if(utf32 < 0x110000)
 		{ // 4 байта
-			data_.push_back((unsigned char) (0b1111'0000 + (utf32 >> 18)));
-			data_.push_back((unsigned char) (0b1000'0000 + ((utf32 >> 12) & 0b0011'1111)));
-			data_.push_back((unsigned char) (0b1000'0000 + ((utf32 >> 6) & 0b0011'1111)));
-			data_.push_back((unsigned char) (0b1000'0000 + (utf32 & 0b0011'1111)));
+			data_.push_back((unsigned char) (0xf0 + (utf32 >> 18))); 		// Уникальная строка
+			data_.push_back((unsigned char) (0x80 + ((utf32 >> 12) & 0x3f))); 	// Уникальная строка
+			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));	// 2 повтора см.выше
+			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора см.выше
 		}
-		else
+		else 
 			throw std::runtime_error("Обнаружен некорректный utf-8 символ.");
+*/
+		size_t usize = 0;
 
+		if(utf32 < 0x7f)
+		{ // 1 байт
+			data_.push_back((unsigned char) utf32);
+		}
+		else if(utf32 < 0x7ff)
+		{ // 2 байта
+			data_.push_back((unsigned char) (0xc0 + (utf32 >> 6)));
+			usize = 2;
+		}
+		else if(utf32 < 0x10000)
+		{ // 3 байта
+			data_.push_back((unsigned char) (0xe0 + (utf32 >> 12)));
+			usize = 3;
+		}
+		else if(utf32 < 0x110000)
+		{ // 4 байта
+			data_.push_back((unsigned char) (0xf0 + (utf32 >> 18)));
+			data_.push_back((unsigned char) (0x80 + ((utf32 >> 12) & 0x3f)));
+			usize = 4;
+		}
+		else 
+			throw std::runtime_error("Обнаружен некорректный utf-8 символ.");
+		if( usize >=3 )
+			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));
+		if( usize >= 2 )
+			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));
 	}
 
 	bool is_well() const
 	{
+		// Оптимизируем код, убирая повторы
+		size_t bytes;
 		std::string::const_iterator it = data_.begin();
 		while (it != data_.end())
 		{
+			bytes = 0;
 			if ((*it &0x80) == 0)
 			{
-				++it;
+				bytes = 1;
 			}
 			else if ((*it &0xe0) == 0xc0)
 			{
-				if (std::distance(it, data_.end()) < 2)
-				{
-					return false;
-				}
-
-				if ((*(it+1) &0xc0) != 0x80)
-				{
-					return false;
-				}
-
-				it += 2;
+				bytes = 2;
 			}
 			else if ((*it &0xf0) == 0xe0)
 			{
-				if (std::distance(it, data_.end()) < 3)
-				{
-					return false;
-				}
-				if ((*(it+1) &0xc0) != 0x80)
-				{
-					return false;
-				}
-
-				if ((*(it+2) &0xc0) != 0x80)
-				{
-					return false;
-				}
-
-				it += 3;
+				bytes = 3;
 			}
 			else if ((*it &0xf8) == 0xf0)
 			{
-				if (std::distance(it, data_.end()) < 4)
-				{
-					return false;
-				}
-
-				if ((*(it+1) &0xc0) != 0x80)
-				{
-					return false;
-				}
-
-				if ((*(it+2) &0xc0) != 0x80)
-				{
-					return false;
-				}
-
-				if ((*(it+3) &0xc0) != 0x80)
-				{
-					return false;
-				}
-
-				it += 4;
+				bytes = 4;
 			}
 			else
-			{
-				// Некорректный символ
+			{ // Некорректный символ
 				return false;
+			}
+			if( bytes != 0 )
+			{
+				if(std::distance(it, data_.end()) < (int) bytes)
+				{ // Ожидались символы, но строка закончилась
+					return false;
+				}
+				for( size_t i = 1; i < bytes; ++i )
+					if(!multibyte(*(it+i)))
+						return false;
+				it += bytes;
 			}
 		}
 		return true;
@@ -328,41 +371,36 @@ public:
 		char32_t operator* () const
 		{
 			char32_t codePoint = 0;
+			// Общие строки перемещены и таким образом код стал оптимальнее
 			char firstByte = str_->data_[curr_pos_];
 		
 			if (firstByte & kfirstBitMask)
 			{
+				char secondByte = str_->data_[curr_pos_+1];
 				if (firstByte & kThirdBitMask)
 				{
+					char thirdByte = str_->data_[curr_pos_+2];
 					if (firstByte & kfourthBitMask)
 					{ // 4 БАЙТА
 						codePoint = (firstByte & 0x07) << 18;		// 3 младших бита сдвигаем влево на 18 позиций
-						char secondByte = str_->data_[curr_pos_+1];
 						codePoint += (secondByte & 0x3f) << 12;		// 6 младших битов второго байта сдвигаем влево на 12
-						char thirdByte = str_->data_[curr_pos_+2];
 						codePoint += (thirdByte & 0x3f) << 6;;		// 6 младших битов третьего байта сдвигаем влево на 6
 						char fourthByte = str_->data_[curr_pos_+3];
 						codePoint += (fourthByte & 0x3f);		// 6 младших битов четвёртого байта добавляем к итогу
 					}
-					
 					else
 					{ // 3 БАЙТА
 						codePoint = (firstByte & 0x0f) << 12;		// 3 младших бита сдвигаем влево на 12 позиций
-						char secondByte = str_->data_[curr_pos_+1];
 						codePoint += (secondByte & 0x3f) << 6;		// 6 младших битов второго байта сдвигаем влево на 6
-						char thirdByte = str_->data_[curr_pos_+2];
 						codePoint += (thirdByte & 0x3f);		// 6 младших битов третьего байта добавляем к итогу
 					}
 				}
 				else
 				{ // 2 БАЙТА
-												// Первые 2 бита всегда 1, поэтому
 					codePoint = (firstByte & 0x1f) << 6;			// 5 младших битов сдвигаем влево на 6
-					char secondByte = str_->data_[curr_pos_+1];
 					codePoint += (secondByte & 0x3f);			// 6 младших битов второго байта добавляем к итогу
 				}
 			}
-			
 			else
 			{ // 1 БАЙТ
 				// Первый бит всегда 0 - но здесь 7 битов младшие, поэтому ни маска, ни битовый сдвиг не нужны
@@ -373,15 +411,22 @@ public:
 public:
 		Iterator& operator++()
 		{ // Преинкремент
-			assert(this);
+//			assert(this);
 			assert(str_); // Проверяем существование родителя
-			curr_pos_ += str_->charlen(curr_pos_); // Смещаемся вперёд
+			if( curr_pos_ < str_->data_.length() )
+			{
+				curr_pos_ += str_->charlen(curr_pos_); // Смещаемся вперёд
+			}
+#ifdef DEBUG
+			else
+				str_->debug_ = "Ignore an attempt to go beyond end().";
+#endif
 			return *this;
 		}
 
 		Iterator operator++(int)
 		{ // Постинкремент
-			assert(this);
+//			assert(this);
 			assert(str_); // Проверяем существование родителя
 			Iterator save_pos_ = *this; // Запоминаем текущее значение
 			++*this; // Используем преинкремент
@@ -390,34 +435,40 @@ public:
 
 		Iterator& operator--()
 		{ // Предекремент
-			assert(this);
+//			assert(this);
 			assert(str_); // Проверяем существование родителя
 			if(curr_pos_ > 0)
+			{
 				--curr_pos_;
 
-			// В "худшем" случае придётся пропустить 3 байта и лишь 4-й будет началом символа.
-			if(str_->multibyte(str_->data_[curr_pos_]))
-			{ // Это означает что предыдущий байт не ASCII символ.
-				assert(curr_pos_ > 0);
-				--curr_pos_;
-				// Добавить проверку на <0
+				// В "худшем" случае придётся пропустить 3 байта и лишь 4-й будет началом символа.
 				if(str_->multibyte(str_->data_[curr_pos_]))
-				{
+				{ // Это означает что предыдущий байт не ASCII символ.
 					assert(curr_pos_ > 0);
 					--curr_pos_;
+					// Добавить проверку на <0
 					if(str_->multibyte(str_->data_[curr_pos_]))
 					{
 						assert(curr_pos_ > 0);
 						--curr_pos_;
+						if(str_->multibyte(str_->data_[curr_pos_]))
+						{
+							assert(curr_pos_ > 0);
+							--curr_pos_;
+						}
 					}
 				}
 			}
+#ifdef	DEBUG
+			else
+				str_->debug_ = "Ignore an attempt to go beyond begin().";
+#endif
 			return *this;
 		}
 
 		Iterator operator--(int)
 		{ // Постдекремент
-			assert(this);
+//			assert(this);
 			assert(str_); // Проверяем существование родителя
 			Iterator save_pos_ = *this; // Запоминаем текущее значение
 			--*this; // Используем предекремент
@@ -426,24 +477,28 @@ public:
 
 		bool operator==(const Iterator& rhs) const { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
 		bool operator!=(const Iterator& rhs) const { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
-private:
+	private: // модификатор относится только к двум переменным ниже
 		UString * str_;
 		size_t curr_pos_ = 0; // Текущая позиция итератора в utf8 строке
 	};
-
+	// продолжение публичной секции
 	Iterator begin()
 	{
-		assert(this);
+//		assert(this);
 		return Iterator(this);
 	}
 
 	Iterator end()
 	{
-		assert(this);
+//		assert(this);
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
 	}
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 
 private:
 	std::string data_;
+#ifdef	DEBUG
+public:
+	std::string debug_;
+#endif
 };
