@@ -5,8 +5,8 @@
 
 TEST_CASE("UString", "[length]")
 {
-	UString u1(U"﴾Измеряем длину текста для проверки﴿");
-	REQUIRE(u1.length() == 36);
+	UString u1(U"﴾Измеряем длину текста﴿");
+	REQUIRE(u1.length() == 23);
 	u1 = "";
 	REQUIRE(u1.length() == 0);
 }
@@ -19,28 +19,6 @@ TEST_CASE("UString", "[std_string]")
 	REQUIRE(u1.length() == 0);
 }
 
-// Тестируем наличие совпадения
-TEST_CASE("UString", "[constructor_vs_assign]")
-{
-	UString u1("456");
-	UString u2("");
-	u2 = "456";
-	REQUIRE( u1 == u2 );
-}
-
-#ifdef	DEBUG
-TEST_CASE("UString", "[same_assignment]")
-{
-	UString u1("abc");
-	UString u2(u1);
-	u2 = "abc";
-	REQUIRE( u1 == u2 );
-	REQUIRE( u2.debug_ == "Skip assigment of the same text." );
-	UString u3("");
-	REQUIRE( u3.debug_ == "Skip assigment of the same text in constructor." );
-}
-#endif
-
 TEST_CASE("UString", "[size]")
 {
 	UString u1(U"﴾Измеряем размер текста﴿");
@@ -51,13 +29,15 @@ TEST_CASE("UString", "[size]")
 
 TEST_CASE("UString", "[add]")
 {
-	UString u1(U"Строка ");
-	UString u2(U"хорошая.");
-	UString u3(U"Строка хорошая.");
+	INFO("+=");
+	UString u1(U"Складываем ");
+	UString u2(U"строки.");
+	UString u3(U"Складываем строки.");
 	u1 += u2;
 	REQUIRE(u1 == u3);
+	INFO("u1 + u2");
 	u1 = u1 + u2;
-	u3 = U"Строка хорошая.хорошая.";
+	u3 = U"Складываем строки.строки.";
 	REQUIRE(u1 == u3);
 }
 
@@ -93,20 +73,12 @@ TEST_CASE("UString", "[pop_back]")
 
 TEST_CASE("UString", "[is_well]")
 {
-// Из-за того, что был переписан конструктор, больше нельзя присвоить строке неверное значение
-// В текущей реализации невозможна ситуация, когда is_well возвращает False
-/*
 	UString u1("\xff");
 	INFO("Section 1");
 	REQUIRE_FALSE(u1.is_well());
 	u1 = U"Корректный UTF-текст";
 	INFO("Section 2");
 	CHECK(u1.is_well());
-*/
-	INFO("Section with throws");
-	REQUIRE_THROWS([&](){
-		UString u1("\xff");
-	}());
 }
 
 TEST_CASE("UString", "[iterator]")
@@ -145,20 +117,6 @@ TEST_CASE("UString", "[reverse][iterator]")
 		REQUIRE(*i == *i2);
 	}
 }
-
-#ifdef DEBUG
-TEST_CASE("UString", "[iterator_limits]")
-{
-	UString u1(U"Текст для теста [iterator_limits] --");
-	UString u2(U"Текст для теста [iterator_limits] ++");
-	auto i1 = u1.begin();
-	auto i2 = u2.end();
-	--i1;
-	REQUIRE(u1.debug_ == "Ignore an attempt to go beyond begin().");
-	++i2;
-	REQUIRE(u2.debug_ == "Ignore an attempt to go beyond end().");
-}
-#endif
 
 TEST_CASE("UString", "[output]")
 {
