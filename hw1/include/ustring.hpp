@@ -4,11 +4,16 @@
 #include <cassert>
 #include <iostream>
 
-const unsigned char kfirstBitMask = 128;	// 1000000
-const unsigned char kSecondBitMask = 64;	// 0100000
-const unsigned char kThirdBitMask  = 32;	// 0010000
-const unsigned char kfourthBitMask = 16;	// 0001000
-const unsigned char kfifthBitMask   = 8;	// 0000100
+const unsigned char kfirstBitMask = 128;	// 0b1000'0000
+const unsigned char kSecondBitMask = 64;	// 0b0100'0000
+const unsigned char kThirdBitMask  = 32;	// 0b0010'0000
+const unsigned char kfourthBitMask = 16;	// 0b0001'0000
+const unsigned char kfifthBitMask   = 8;	// 0b0000'1000
+
+const unsigned char ktwoLeftBits = 0xc0;
+const unsigned char kthreeLeftBits = 0xe0;
+const unsigned char kfourLeftBits = 0xf0;
+const unsigned char kfiveLeftBits = 0xf8;
 
 class UString
 {
@@ -127,13 +132,13 @@ private:
 	{
 		size_t ret;
 
-		if ((data_[it] & 0x80) == 0)
+		if ((data_[it] & kfirstBitMask) == 0)
 			ret = 1;
-		else if ((data_[it] & 0xe0) == 0xc0)
+		else if ((data_[it] & kthreeLeftBits) == ktwoLeftBits)
 			ret = 2;
-		else if ((data_[it] & 0xf0) == 0xe0)
+		else if ((data_[it] & kfourLeftBits) == kthreeLeftBits)
 			ret = 3;
-		else if ((data_[it] & 0xf8) == 0xf0)
+		else if ((data_[it] & kfiveLeftBits) == kfourLeftBits)
 			ret = 4;
 		else
 		{
@@ -184,7 +189,7 @@ public:
 private:
 	bool multibyte(unsigned char c) const // Продолжение символа utf8
 	{
-		return c >= 0x80 && c < 0xc0; // return (c & 0xc0) == 0x80;
+		return c >= kfirstBitMask && c < ktwoLeftBits;
 	}
 
 public:
@@ -195,19 +200,19 @@ public:
 		size_t len = b.length();
 		size_t i = 0;
 		size_t usize = 0; // Признак некорректного символа
-		if (len > 0 && ((b[i] & 0x80) == 0))
+		if (len > 0 && ((b[i] & kfirstBitMask) == 0))
 		{
 			usize = 1;
 		}
-		else if (len > 1 && ((b[i] & 0xe0) == 0xc0))
+		else if (len > 1 && ((b[i] & kthreeLeftBits) == ktwoLeftBits))
 		{
 			usize = 2;
 		}
-		else if (len > 2 && ((b[i] & 0xf0) == 0xe0))
+		else if (len > 2 && ((b[i] & kfourLeftBits) == kthreeLeftBits))
 		{
 			usize = 3;
 		}
-		else if (len > 3 && ((b[i]& 0xf8) == 0xf0))
+		else if (len > 3 && ((b[i]& kfiveLeftBits) == kfourLeftBits))
 		{
 			usize = 4;
 		}
@@ -255,32 +260,32 @@ public:
 */
 		size_t usize = 0;
 
-		if(utf32 < 0x7f)
+		if(utf32 <= kfirstBitMask)
 		{ // 1 байт
 			data_.push_back((unsigned char) utf32);
 		}
 		else if(utf32 < 0x7ff)
 		{ // 2 байта
-			data_.push_back((unsigned char) (0xc0 + (utf32 >> 6)));
+			data_.push_back((unsigned char) (ktwoLeftBits + (utf32 >> 6)));
 			usize = 2;
 		}
 		else if(utf32 < 0x10000)
 		{ // 3 байта
-			data_.push_back((unsigned char) (0xe0 + (utf32 >> 12)));
+			data_.push_back((unsigned char) (kthreeLeftBits + (utf32 >> 12)));
 			usize = 3;
 		}
 		else if(utf32 < 0x110000)
 		{ // 4 байта
-			data_.push_back((unsigned char) (0xf0 + (utf32 >> 18)));
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 12) & 0x3f)));
+			data_.push_back((unsigned char) (kfourLeftBits + (utf32 >> 18)));
+			data_.push_back((unsigned char) (kfirstBitMask + ((utf32 >> 12) & 0x3f)));
 			usize = 4;
 		}
 		else 
 			throw std::runtime_error("Обнаружен некорректный utf-8 символ.");
 		if( usize >=3 )
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));
+			data_.push_back((unsigned char) (kfirstBitMask + ((utf32 >> 6) & 0x3f)));
 		if( usize >= 2 )
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));
+			data_.push_back((unsigned char) (kfirstBitMask + (utf32 & 0x3f)));
 	}
 
 	bool is_well() const
@@ -291,19 +296,19 @@ public:
 		while (it != data_.end())
 		{
 			bytes = 0;
-			if ((*it &0x80) == 0)
+			if ((*it &kfirstBitMask) == 0)
 			{
 				bytes = 1;
 			}
-			else if ((*it &0xe0) == 0xc0)
+			else if ((*it &kthreeLeftBits) == ktwoLeftBits)
 			{
 				bytes = 2;
 			}
-			else if ((*it &0xf0) == 0xe0)
+			else if ((*it &kfourLeftBits) == kthreeLeftBits)
 			{
 				bytes = 3;
 			}
-			else if ((*it &0xf8) == 0xf0)
+			else if ((*it &kfiveLeftBits) == kfourLeftBits)
 			{
 				bytes = 4;
 			}
@@ -339,7 +344,7 @@ public:
 		}
 
 		std::string::iterator last = data_.end() - 1;
-		while ((*last &0xc0) == 0x80)
+		while ((*last &ktwoLeftBits) == kfirstBitMask)
 		{
 			assert(last != data_.begin());
 			--last;
