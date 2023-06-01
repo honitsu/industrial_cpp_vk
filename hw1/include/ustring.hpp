@@ -23,7 +23,7 @@ const unsigned char ksixRightBits   = 0x3f;	// 0b0011'1111
 const char32_t koneByteMaxValue    = 0x7f;
 const char32_t ktwoBytesMaxValue   = 0x7ff;
 const char32_t kthreeBytesMaxValue = 0xffff;
-const char32_t kfourBytesMaxValue = 0x1fffff;
+const char32_t kfourBytesMaxValue  = 0x1fffff;
 
 class UString
 {
@@ -37,21 +37,18 @@ public:
 		// Теперь невозможно выполнить инициализацию некорректными UTF8 символами, т.к.
 		// метод push_back выполняет входной контроль данных.
 		// Тест "[is_well]" пришлось переделать.
-
-		if( data_ != str ) // Такое совпадение возможно только для пустой строки, но
-				   // ради унификации методов оставляем проверку.
-		{
-			size_t len_ = str.length();
-			data_.clear();
-			if( len_ > 0 )
-			{
-				for(size_t i = 0; i < len_; ++i )
-				{
-					push_back(str.substr(i));
-				}
-			}
-		}
+		size_t len_ = str.length();
+		data_.clear();
 #ifdef DEBUG
+		if( len_ > 0 )
+		{
+#endif
+			for(size_t i = 0; i < len_; ++i )
+			{
+				push_back(str.substr(i));
+			}
+#ifdef DEBUG
+		}
 		else
 			debug_ = "Skip assigment of the same text in constructor.";
 #endif
@@ -140,10 +137,11 @@ private:
 	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
 	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
-	size_t charlen(size_t it) const // эффективнее передача по значению
+	size_t charlen(size_t& it) const
 	{
 		size_t ret;
 
+		assert( it < data_.length() );
 		if ((data_[it] & kfirstBitMask) == 0)
 			ret = 1;
 		else if ((data_[it] & kthreeLeftBits) == ktwoLeftBits)
@@ -356,9 +354,10 @@ public:
 		}
 
 		std::string::iterator last = data_.end() - 1;
+		std::string::iterator tmp = data_.begin();
 		while ((*last &ktwoLeftBits) == kfirstBitMask)
 		{
-			assert(last != data_.begin());
+			assert(last != tmp);
 			--last;
 		}
 
