@@ -3,6 +3,7 @@
 #include <iterator>
 #include <cassert>
 #include <iostream>
+#include <cstring>
 
 const unsigned char kfirstBitMask = 128;	// 0b1000'0000
 const unsigned char kSecondBitMask = 64;	// 0b0100'0000
@@ -114,28 +115,28 @@ public:
 		return *this;
 	}
 
-	friend UString operator +(UString lhs, const UString &rhs) noexcept
+	UString operator +(const UString &rhs) noexcept
 	{
-		lhs += rhs;
-		return lhs;
+		*this += rhs;
+		return *this;
 	}
 
-	friend bool operator ==(const UString &lhs, const UString &rhs) noexcept
+	bool operator ==(const UString &rhs) const noexcept
 	{
-		return lhs.data_ == rhs.data_;
+		return this->data_ == rhs.data_;
 	}
 
-	friend bool operator !=(const UString &lhs, const UString &rhs) noexcept
+	bool operator !=(const UString &rhs) const noexcept
 	{
-		return !(lhs == rhs);
+		return !(*this == rhs);
 	}
 
 private:
 	// Методы
-	/*  0xxxxxxx = 1 байт  
-	    110xxxxx = 2 байта 10xxxxxx
-	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
-	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
+	/*  1 байт  0xxxxxxx
+	    2 байта 110xxxxx 10xxxxxx
+	    3 байта 1110xxxx 10xxxxxx 10xxxxxx
+	    4 байта 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
 	size_t charlen(size_t& it) const
 	{
@@ -379,10 +380,10 @@ public:
 		Iterator(UString *ptr, size_t pos) noexcept: str_(ptr), curr_pos_(pos) {}
 
 		/*	
-			0xxxxxxx = 1 байт  
-			110xxxxx = 2 байта 10xxxxxx
-			1110xxxx = 3 байта 10xxxxxx 10xxxxxx
-			11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
+			1 байт  0xxxxxxx
+	    		2 байта 110xxxxx 10xxxxxx
+	    		3 байта 1110xxxx 10xxxxxx 10xxxxxx
+	    		4 байта 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 		*/
 		char32_t operator* () const noexcept
 		{
@@ -491,8 +492,8 @@ public:
 			return save_pos_; // Возвращаем запомненное значение
 		}
 
-		bool operator==(const Iterator& rhs) const noexcept { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
-		bool operator!=(const Iterator& rhs) const noexcept { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
+		bool operator ==(const Iterator& rhs) const noexcept { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
+		bool operator !=(const Iterator& rhs) const noexcept { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
 	private: // модификатор относится только к двум переменным ниже
 		UString * str_;
 		size_t curr_pos_ = 0; // Текущая позиция итератора в utf8 строке
