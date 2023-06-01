@@ -3,10 +3,15 @@
 #include <catch2/catch_all.hpp>
 #include "ustring.hpp"
 
+// Модифицированный тест. Добавлена переменная u2
 TEST_CASE("UString", "[length]")
 {
 	UString u1(U"﴾Измеряем длину текста для проверки﴿");
 	REQUIRE(u1.length() == 36);
+	UString u2("");
+	REQUIRE(u2.length() == 0);
+	u2 = u1;
+	REQUIRE(u2.length() == 36);
 	u1 = "";
 	REQUIRE(u1.length() == 0);
 }
@@ -93,8 +98,6 @@ TEST_CASE("UString", "[pop_back]")
 
 TEST_CASE("UString", "[is_well]")
 {
-// Из-за того, что был переписан конструктор, больше нельзя присвоить строке неверное значение
-// В текущей реализации невозможна ситуация, когда is_well возвращает False
 /*
 	UString u1("\xff");
 	INFO("Section 1");
@@ -109,6 +112,32 @@ TEST_CASE("UString", "[is_well]")
 	}());
 }
 
+// Новый тест
+// Проверяем запись min/max символа utf для 1-4 байтов. Итого - 8 проверок
+TEST_CASE("UString", "[min_max]")
+{
+	INFO("1-byte");
+	UString u1("");
+	u1 = "\x01";
+	REQUIRE(u1.length() == 1);
+	u1 = "\x7f";
+	REQUIRE(u1.length() == 1);
+	INFO("2-byte");
+	u1 = "\xc0\x80";
+	REQUIRE(u1.length() == 1);
+	u1 = "\xdf\xbf";
+	REQUIRE(u1.length() == 1);
+	INFO("3-byte");
+	u1 = "\xe0\x80\x80";
+	REQUIRE(u1.length() == 1);
+	u1 = "\xef\xbf\xbf";
+	REQUIRE(u1.length() == 1);
+	INFO("4-byte");
+	u1 = "\xf0\x80\x80\x80";
+	REQUIRE(u1.length() == 1);
+	u1 = "\xf7\xbf\xbf\xbf";
+	REQUIRE(u1.length() == 1);
+}
 TEST_CASE("UString", "[iterator]")
 {
 	UString u1(U"Текст для теста [iterator]");
@@ -117,12 +146,14 @@ TEST_CASE("UString", "[iterator]")
 	++i2; // Пропустим первые 3 символа во второй строке
 	++i2;
 	++i2;
+	// Постинкремент используется специально ради теста
 	for( auto i = u1.begin(); i != u1.end(); i++ ) {
 		REQUIRE(*i == *i2);
-		i2++;
+		++i2;
 	}
 }
 
+// Новый тест. Проверка разыменованного значения при инкременте и декременте итератора
 TEST_CASE("UString", "[iterator_not_equal]")
 {
 	UString u1(U"Текст для теста [iterator_not_equal]");
@@ -131,7 +162,7 @@ TEST_CASE("UString", "[iterator_not_equal]")
 	INFO("==");
 	REQUIRE(i1 == i2);
 	INFO("!=");
-	i1++;
+	++i1;
 	REQUIRE(i1 != i2);
 }
 
@@ -140,10 +171,22 @@ TEST_CASE("UString", "[reverse][iterator]")
 	UString u1(U"Текст 2 для теста テキストをテストします。#ﻼ");
 	UString u2(U"ﻼ#。すましトステをトスキテ атсет ялд 2 тскеТ");
 	auto i2 = u2.end();
-	for( auto i = u1.begin(); i != u1.end(); i++ ) {
+	for( auto i = u1.begin(); i != u1.end(); ++i ) {
 		--i2;
 		REQUIRE(*i == *i2);
 	}
+}
+
+TEST_CASE("UString", "[iterator][name_with_increment]")
+{
+	UString u1(U"** Текст 3 для теста **");
+	auto i1 = u1.begin();
+	REQUIRE( *i1 == *i1++ );
+	REQUIRE( *i1 != *i1++ );
+	i1 = u1.end();
+	i1--;
+	REQUIRE( *i1 == *i1-- );
+	REQUIRE( *i1 != *i1-- );
 }
 
 #ifdef DEBUG
