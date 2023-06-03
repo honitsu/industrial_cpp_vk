@@ -1,5 +1,3 @@
-#pragma once
-
 #include <iterator>
 #include <cassert>
 #include <iostream>
@@ -40,16 +38,20 @@ public:
 		// Тест "[is_well]" пришлось переделать.
 		size_t len_ = str.length();
 		data_.clear();
-#ifdef DEBUG
 		if( len_ > 0 )
 		{
-#endif
-			for(size_t i = 0; i < len_; ++i )
+			size_t s_len;
+			for(size_t i = 0; i < len_; )
 			{
+				s_len = size();	// Выясняем текущий размер строки UTF в байтах
 				push_back(str.substr(i));
+				if (s_len == size()) // Размер не изменился
+					++i;
+				else
+					i += size() - s_len;
 			}
-#ifdef DEBUG
 		}
+#ifdef		DEBUG
 		else
 			debug_ = "Skip assigment of the same text in constructor.";
 #endif
@@ -77,6 +79,21 @@ public:
 	{
 		if( data_ != str )
 		{
+			UString tmp(str);
+			data_ = tmp.data_;
+		}
+#ifdef		DEBUG
+		else
+			debug_ = "Skip assigment of the same text.";
+#endif
+		return *this;
+	}
+
+/*
+	UString &operator =(const std::string &str)
+	{
+		if( data_ != str )
+		{
 			size_t len_ = str.length();
 			data_.clear();
 			if( len_ > 0 )
@@ -99,11 +116,11 @@ public:
 #endif
 		return *this;
 	}
+*/
 
 	UString &operator =(const std::u32string &str)
 	{
-		// то есть программа должна падать если мы копируем пустую строку?
-//		assert(!str.empty());
+/*
 		data_.clear();
 		if(!str.empty())
 		{
@@ -112,6 +129,9 @@ public:
 				push_back(c);
 			}
 		}
+*/
+		UString tmp(str);
+		data_ = tmp.data_;
 		return *this;
 	}
 
@@ -242,33 +262,6 @@ public:
 	// Метод разбирает codePoint и добавляет 1-4 символа в строку data_[]
 	void push_back(const char32_t utf32)
 	{
-		// Ликвидация повторов, указанных ниже, удлинняет текст программы и ухудшает читаемость
-/*
-		if(utf32 < 0x7f)
-		{ // 1 байт
-			data_.push_back((unsigned char) utf32);
-		}
-		else if(utf32 < 0x7ff)
-		{ // 2 байта
-			data_.push_back((unsigned char) (0xc0 + (utf32 >> 6)));			// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора
-		}
-		else if(utf32 < 0x10000)
-		{ // 3 байта
-			data_.push_back((unsigned char) (0xe0 + (utf32 >> 12)));		// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));	// 2 повтора
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора см.выше
-		}
-		else if(utf32 < 0x110000)
-		{ // 4 байта
-			data_.push_back((unsigned char) (0xf0 + (utf32 >> 18))); 		// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 12) & 0x3f))); 	// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));	// 2 повтора см.выше
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора см.выше
-		}
-		else 
-			throw std::runtime_error("Обнаружен некорректный utf-8 символ.");
-*/
 		size_t usize = 0;
 
 		if(utf32 <= koneByteMaxValue)
@@ -347,6 +340,14 @@ public:
 		data_.erase(data_.begin(), data_.end());
 	}
 
+	// Если строка пустая - сразу возврат
+	// Начинаем цикл с позиции data_.end() - 1 - т.е. последний символ в строке.
+	// Пока код символа соответствует продолжению 2..4-байтного UTF символа - смещаемся левее.
+	// Как только эта цепочка закончилась - мы либо оказались в голове длинного символа,
+	// либо на однобайтном символе. Его и всё, что после него удаляем из строки.
+	// В цикле last никогда не станет равен data_.begin(), т.к. в этом случае сначала прервётся цикл while
+	// потому что первый символ не может быть продолжением, push_back не пропустит такой код.
+	// Я не понимаю, в чём проблема?
 	void pop_back()
 	{
 		if (data_.empty())
@@ -513,7 +514,7 @@ public:
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 
 private:
-	std::string data_;
+	std::string data_ = "";
 #ifdef	DEBUG
 public:
 	std::string debug_;
