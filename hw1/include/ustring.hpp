@@ -37,24 +37,17 @@ public:
 		// метод push_back выполняет входной контроль данных.
 		// Тест "[is_well]" пришлось переделать.
 		size_t len_ = str.length();
-		data_.clear();
-		if( len_ > 0 )
+		// Лишние операторы удалены
+		size_t s_len;
+		for(size_t i = 0; i < len_; )
 		{
-			size_t s_len;
-			for(size_t i = 0; i < len_; )
-			{
-				s_len = size();	// Выясняем текущий размер строки UTF в байтах
-				push_back(str.substr(i));
-				if (s_len == size()) // Размер не изменился
-					++i;
-				else
-					i += size() - s_len;
-			}
+			s_len = size();	// Выясняем текущий размер строки UTF в байтах
+			push_back(str.substr(i));
+			if (s_len == size()) // Размер не изменился
+				++i;
+			else
+				i += size() - s_len;
 		}
-#ifdef		DEBUG
-		else
-			debug_ = "Skip assigment of the same text in constructor.";
-#endif
 	}
 
 	UString(const std::u32string &str)
@@ -131,7 +124,12 @@ public:
 		}
 */
 		UString tmp(str);
-		data_ = tmp.data_;
+		//data_ = tmp.data_;
+		// Копирование заменено на move
+		if( *this != tmp )
+		{
+			*this = std::move(tmp);
+		}
 		return *this;
 	}
 
@@ -357,11 +355,27 @@ public:
 
 		std::string::iterator last = data_.end() - 1;
 		std::string::iterator tmp = data_.begin();
+		// assert нужен, чтобы исключить ситуацию, когда первый символ в data_
+		// соответствует продолжению длинного символа => начальный символ - отсутствует.
+		// Последний символ data_ может быть любым из диапазона допустимых кодов utf.
+		// Самым первым символом строки может быть либо однбайтный utf, либо "голова" многобайтного символа
+		// Можно сразу проверить начало строки на корректность, но при операции pop_back не всегда
+		// дело доходит до крайнего левого символа и эта операция будет избыточной.
+		// Если при удалении крайнего правого символа он был единственным - проверка состоится
+		/*
 		while ((*last &ktwoLeftBits) == kfirstBitMask)
 		{
 			assert(last != tmp);
 			--last;
 		}
+		*/
+		// Вариант без assert в цикле:
+		while ((*last &ktwoLeftBits) == kfirstBitMask && last != tmp)
+		{
+			--last;
+		}
+		if((*last &ktwoLeftBits) == kfirstBitMask ) // && last == tmp
+			throw std::runtime_error("Обнаружен некорректный utf-8 символ в начале строки.");
 
 		data_.erase(last, data_.end());
 	}
