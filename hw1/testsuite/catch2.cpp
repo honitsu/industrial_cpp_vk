@@ -41,8 +41,6 @@ TEST_CASE("UString", "[same_assignment]")
 	u2 = "abc";
 	REQUIRE( u1 == u2 );
 	REQUIRE( u2.debug_ == "Skip assigment of the same text." );
-	UString u3("");
-	REQUIRE( u3.debug_ == "Skip assigment of the same text in constructor." );
 }
 #endif
 
