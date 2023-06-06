@@ -29,22 +29,19 @@ class UString
 public:
 	UString() = default;
 
-	// Новый перемещающий конструктор
+	// Перемещающий конструктор
 	UString(UString&& other)
 	{
 		data_ = other.data_;
-		dummy_ = std::move(other.dummy_);
-		other.dummy_ = nullptr;
 	}
 
-	// Новый копирующий конструктор
+	// Копирующий конструктор
 	UString(const UString& other)
 	{
 		data_ = other.data_;
-		dummy_ = new int[10];
-		std::copy(std::begin(other.data_), std::end(other.data_), std::begin(data_));
 	}
 
+	// Конструктор для преобразования std::string -> UString
 	UString(const std::string &str)
 	{
 		// "Разная логика у конструктора от string и оператора присваивания"
@@ -65,10 +62,9 @@ public:
 			else
 				i += size() - s_len;
 		}
-		// Добавили выделение памяти
-		dummy_ = new int[10];
 	}
 
+	// Конструктор для преобразования std::u32string -> UString
 	UString(const std::u32string &str)
 	{
 		// В данном методе невозможно сравнить что-то со строкой u32string, 
@@ -78,8 +74,6 @@ public:
 		// код всё равно выполнится.
 		for(auto c: str)
 			push_back(c);
-		// Добавили выделение памяти
-		dummy_ = new int[10];
 	}
 
 	// Операторы
@@ -89,16 +83,13 @@ public:
 		return *this;
 	}
 
+	// Присваивание для типа std::string
 	UString &operator =(const std::string &str)
 	{
 		if( data_ != str )
 		{
 			UString tmp(str);
-			data_ = tmp.data_;
-			if( dummy_ != nullptr )
-				delete [] dummy_;
-			dummy_ = std::move(tmp.dummy_);
-			tmp.dummy_ = nullptr;
+			*this = tmp;
 		}
 #ifdef		DEBUG
 		else
@@ -107,74 +98,29 @@ public:
 		return *this;
 	}
 
-/*
-	UString &operator =(const std::string &str)
-	{
-		if( data_ != str )
-		{
-			size_t len_ = str.length();
-			data_.clear();
-			if( len_ > 0 )
-			{
-				size_t s_len;
-				for(size_t i = 0; i < len_; )
-				{
-					s_len = size();	// Выясняем текущий размер строки UTF в байтах
-					push_back(str.substr(i));
-					if (s_len == size()) // Размер не изменился
-						++i;
-					else
-						i += size() - s_len;
-				}
-			}
-		}
-#ifdef		DEBUG
-		else
-			debug_ = "Skip assigment of the same text.";
-#endif
-		return *this;
-	}
-*/
-
+	// Присваивание для типа std::u32string
 	UString &operator =(const std::u32string &str)
 	{
-/*
-		data_.clear();
-		if(!str.empty())
-		{
-			for(auto c: str)
-			{
-				push_back(c);
-			}
-		}
-*/
 		UString tmp(str);
 		//data_ = tmp.data_;
 		// Копирование заменено на move
-		if( *this != tmp )
+		if( data_ != tmp.data_ )
 		{
-			data_ = tmp.data_;
-			if( dummy_ != nullptr )
-				delete [] dummy_;
-			dummy_ = std::move(tmp.dummy_);
-			tmp.dummy_ = nullptr;
-			//*this = std::move(tmp);
+			*this = tmp;
 		}
 		return *this;
 	}
 
-	// Новый перемещающий оператор присваивания
+	// Перемещающий оператор присваивания
 	UString& operator =(UString&& other)
 	{
 		if( data_ == other.data_ )
 			return *this;
 		data_ = other.data_;
-		dummy_ = std::move(other.dummy_);
-		other.dummy_ = nullptr;
 		return *this;
 	}
 
-	// Новый копирующий оператор присваивания
+	// Копирующий оператор присваивания
 	UString& operator =(const UString& other)
 	{
 		if( data_ == other.data_ )
@@ -577,15 +523,9 @@ public:
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
 	}
 	// ~UString() {} // Деструктор по-умолчанию подходит.
-	~UString()
-	{
-		if( dummy_ != nullptr )
-			delete [] dummy_;
-	}
 
 private:
 	std::string data_ = "";
-	int* dummy_ = nullptr;
 #ifdef	DEBUG
 public:
 	std::string debug_;
