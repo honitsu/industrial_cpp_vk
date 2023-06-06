@@ -27,7 +27,26 @@ const char32_t kfourBytesMaxValue  = 0x1fffff;
 class UString
 {
 public:
-	UString() = default;
+	//UString() = default;
+	// Новый default конструтор, т.к. старый больше не годится
+	UString(): data_(""), dummy_(new int[10]) {}
+
+	// Новый перемещающий конструктор
+	UString(UString&& other)
+	{
+		data_ = other.data_;
+		dummy_ = std::move(other.dummy_);
+		other.dummy_ = nullptr;
+	}
+
+	// Новый копирующий конструктор
+	UString(const UString& other)
+	{
+		data_ = other.data_;
+		dummy_ = new int[10];
+		std::copy(std::begin(other.data_), std::end(other.data_), std::begin(data_));
+	}
+
 	UString(const std::string &str)
 	{
 		// "Разная логика у конструктора от string и оператора присваивания"
@@ -48,6 +67,8 @@ public:
 			else
 				i += size() - s_len;
 		}
+		// Добавили выделение памяти
+		dummy_ = new int[10];
 	}
 
 	UString(const std::u32string &str)
@@ -59,6 +80,8 @@ public:
 		// код всё равно выполнится.
 		for(auto c: str)
 			push_back(c);
+		// Добавили выделение памяти
+		dummy_ = new int[10];
 	}
 
 	// Операторы
@@ -74,6 +97,9 @@ public:
 		{
 			UString tmp(str);
 			data_ = tmp.data_;
+			delete [] dummy_;
+			dummy_ = std::move(tmp.dummy_);
+			tmp.dummy_ = nullptr;
 		}
 #ifdef		DEBUG
 		else
@@ -128,8 +154,33 @@ public:
 		// Копирование заменено на move
 		if( *this != tmp )
 		{
-			*this = std::move(tmp);
+			data_ = tmp.data_;
+			delete [] dummy_;
+			dummy_ = std::move(tmp.dummy_);
+			tmp.dummy_ = nullptr;
+			//*this = std::move(tmp);
 		}
+		return *this;
+	}
+
+	// Новый перемещающий оператор присваивания
+	UString& operator =(UString&& other)
+	{
+		if( data_ == other.data_ )
+			return *this;
+		data_ = other.data_;
+		dummy_ = std::move(other.dummy_);
+		other.dummy_ = nullptr;
+		return *this;
+	}
+
+	// Новый копирующий оператор присваивания
+	UString& operator =(const UString& other)
+	{
+		if( data_ == other.data_ )
+			return *this;
+		data_ = other.data_;
+		std::copy(std::begin(other.data_), std::end(other.data_), std::begin(data_));
 		return *this;
 	}
 
@@ -526,9 +577,14 @@ public:
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
 	}
 	// ~UString() {} // Деструктор по-умолчанию подходит.
+	~UString()
+	{
+		delete [] dummy_;
+	}
 
 private:
 	std::string data_ = "";
+	int* dummy_;
 #ifdef	DEBUG
 public:
 	std::string debug_;
