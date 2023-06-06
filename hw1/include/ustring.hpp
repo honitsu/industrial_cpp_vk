@@ -27,9 +27,7 @@ const char32_t kfourBytesMaxValue  = 0x1fffff;
 class UString
 {
 public:
-	//UString() = default;
-	// Новый default конструтор, т.к. старый больше не годится
-	UString(): data_(""), dummy_(new int[10]) {}
+	UString() = default;
 
 	// Новый перемещающий конструктор
 	UString(UString&& other)
@@ -97,7 +95,8 @@ public:
 		{
 			UString tmp(str);
 			data_ = tmp.data_;
-			delete [] dummy_;
+			if( dummy_ != nullptr )
+				delete [] dummy_;
 			dummy_ = std::move(tmp.dummy_);
 			tmp.dummy_ = nullptr;
 		}
@@ -155,7 +154,8 @@ public:
 		if( *this != tmp )
 		{
 			data_ = tmp.data_;
-			delete [] dummy_;
+			if( dummy_ != nullptr )
+				delete [] dummy_;
 			dummy_ = std::move(tmp.dummy_);
 			tmp.dummy_ = nullptr;
 			//*this = std::move(tmp);
@@ -579,12 +579,13 @@ public:
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 	~UString()
 	{
-		delete [] dummy_;
+		if( dummy_ != nullptr )
+			delete [] dummy_;
 	}
 
 private:
 	std::string data_ = "";
-	int* dummy_;
+	int* dummy_ = nullptr;
 #ifdef	DEBUG
 public:
 	std::string debug_;
