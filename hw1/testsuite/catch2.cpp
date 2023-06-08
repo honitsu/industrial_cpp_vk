@@ -42,13 +42,44 @@ TEST_CASE("UString compare", "[constructor_vs_assign]")
 }
 
 #ifdef	DEBUG
-TEST_CASE("UString assign same value", "[same_assignment]")
+TEST_CASE("UString move assignment", "[move][assignment]")
+{
+	UString u1;
+	u1 = UString("10");
+	REQUIRE( u1.debug_ == "Move assignment UString& operator =(UString&& other)" );
+}
+
+TEST_CASE("UString copy assignment", "[copy][assignment]")
+{
+	UString u1 = UString(U"777");
+	REQUIRE( u1.debug_ == "Copy assignment UString& operator =(const std::u32string &str)" );
+}
+
+TEST_CASE("UString move constructor", "[move][constructor]")
+{
+	UString u1 = std::move(UString(U"999"));
+	REQUIRE( u1.debug_ == "Move constructor UString(const UStringa&& other)" );
+}
+
+TEST_CASE("UString copy constructor", "[copy][constructor]")
 {
 	UString u1("abc");
 	UString u2(u1);
 	u2 = "abc";
 	REQUIRE( u1 == u2 );
 	REQUIRE( u2.debug_ == "Copy constructor UString(const UString& other)" );
+}
+
+TEST_CASE("UString check iterator bounds", "[iterator_limits]")
+{
+	UString u1(U"Текст для теста [iterator_limits] --");
+	UString u2(U"Текст для теста [iterator_limits] ++");
+	auto i1 = u1.begin();
+	auto i2 = u2.end();
+	--i1;
+	REQUIRE(u1.debug_ == "Ignore an attempt to go beyond begin().");
+	++i2;
+	REQUIRE(u2.debug_ == "Ignore an attempt to go beyond end().");
 }
 #endif
 
@@ -200,20 +231,6 @@ TEST_CASE("UString inc iterator", "[iterator][name_with_increment]")
 	REQUIRE( *i1 == *i1-- );
 	REQUIRE( *i1 != *i1-- );
 }
-
-#ifdef DEBUG
-TEST_CASE("UString check iterator bounds", "[iterator_limits]")
-{
-	UString u1(U"Текст для теста [iterator_limits] --");
-	UString u2(U"Текст для теста [iterator_limits] ++");
-	auto i1 = u1.begin();
-	auto i2 = u2.end();
-	--i1;
-	REQUIRE(u1.debug_ == "Ignore an attempt to go beyond begin().");
-	++i2;
-	REQUIRE(u2.debug_ == "Ignore an attempt to go beyond end().");
-}
-#endif
 
 TEST_CASE("UString output data", "[output]")
 {
