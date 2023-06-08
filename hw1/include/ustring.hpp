@@ -33,6 +33,9 @@ public:
 	UString(UString&& other)
 	{
 		data_ = other.data_;
+#ifdef DEBUG
+		debug_ = "Move constructor UString(const UStringa&& other)";
+#endif
 	}
 
 	// Копирующий конструктор
@@ -82,11 +85,14 @@ public:
 	}
 
 	// Присваивание для типа std::u32string
-	UString &operator =(const std::u32string &str)
+	UString& operator =(const std::u32string &str)
 	{
 		data_.clear();
 		for(auto c: str)
  			push_back(c);
+#ifdef DEBUG
+		debug_ = "Copy assignment UString& operator =(const std::u32string &str)";
+#endif
 		return *this;
 	}
 
@@ -96,6 +102,9 @@ public:
 		if( data_ == other.data_ )
 			return *this;
 		data_ = other.data_;
+#ifdef DEBUG
+		debug_ = "Move assignment UString& operator =(UString&& other)";
+#endif
 		return *this;
 	}
 
