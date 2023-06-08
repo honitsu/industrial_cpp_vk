@@ -4,7 +4,7 @@
 #include "ustring.hpp"
 
 // Модифицированный тест. Добавлена переменная u2
-TEST_CASE("UString", "[length]")
+TEST_CASE("UString len check", "[length]")
 {
 	UString u1(U"﴾Измеряем длину текста для проверки﴿");
 	REQUIRE(u1.length() == 36);
@@ -16,7 +16,7 @@ TEST_CASE("UString", "[length]")
 	REQUIRE(u1.length() == 0);
 }
 
-TEST_CASE("UString", "[std_string]")
+TEST_CASE("UString reassign", "[std_string]")
 {
 	UString u1("123");
 	REQUIRE(u1.length() == 3);
@@ -24,27 +24,35 @@ TEST_CASE("UString", "[std_string]")
 	REQUIRE(u1.length() == 0);
 }
 
+TEST_CASE("UString copy", "[copy]")
+{
+	UString u1("123");
+	UString u2(u1);
+	REQUIRE(u1 == u2);
+}
+
 // Тестируем наличие совпадения
-TEST_CASE("UString", "[constructor_vs_assign]")
+TEST_CASE("UString compare", "[constructor_vs_assign]")
 {
 	UString u1("456");
 	UString u2("");
 	u2 = "456" ;
 	REQUIRE( u1 == u2 );
+	REQUIRE( u2.length() == 3 );
 }
 
 #ifdef	DEBUG
-TEST_CASE("UString", "[same_assignment]")
+TEST_CASE("UString assign same value", "[same_assignment]")
 {
 	UString u1("abc");
 	UString u2(u1);
 	u2 = "abc";
 	REQUIRE( u1 == u2 );
-	REQUIRE( u2.debug_ == "Skip assigment of the same text." );
+	REQUIRE( u2.debug_ == "Copy constructor UString(const UString& other)" );
 }
 #endif
 
-TEST_CASE("UString", "[size]")
+TEST_CASE("UString get size", "[size]")
 {
 	UString u1(U"﴾Измеряем размер текста﴿");
 	REQUIRE(u1.size() == 48);
@@ -52,7 +60,7 @@ TEST_CASE("UString", "[size]")
 	REQUIRE(u1.size() == 0);
 }
 
-TEST_CASE("UString", "[add]")
+TEST_CASE("UString add operator", "[add]")
 {
 	UString u1(U"Строка ");
 	UString u2(U"хорошая.");
@@ -64,7 +72,7 @@ TEST_CASE("UString", "[add]")
 	REQUIRE(u1 == u3);
 }
 
-TEST_CASE("UString", "[not_equal]")
+TEST_CASE("UString non equal compare", "[not_equal]")
 {
 	UString u1(U"Строка");
 	UString u2(U"Строка");
@@ -72,7 +80,7 @@ TEST_CASE("UString", "[not_equal]")
 	REQUIRE(u1 != u2);
 }
 
-TEST_CASE("UString", "[push_back]")
+TEST_CASE("UString check push_back", "[push_back]")
 {
 	UString u1("");
 	UString u2(U"เสน");
@@ -82,7 +90,7 @@ TEST_CASE("UString", "[push_back]")
 	REQUIRE(u1 == u2);
 }
 
-TEST_CASE("UString", "[pop_back]")
+TEST_CASE("UString check pop_back", "[pop_back]")
 {
 	UString u1(U"АБ𓂸");
 	UString u2(U"АБ𓂸스");
@@ -94,13 +102,13 @@ TEST_CASE("UString", "[pop_back]")
 	REQUIRE(u1 == u2);
 }
 
-TEST_CASE("UString", "[is_well]")
+TEST_CASE("UString is_well", "[is_well]")
 {
 	UString u1(U"!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~€<control>‚ƒ„…†‡ˆ‰Š‹ŒREVERSEŽSINGLEDEVICE‘’“”•–—˜™š›œOPERATINGžŸNO-BREAK¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƗƘƙƚƛƜƝƞƟƠơƢƣƤƥƦƧƨƩƪƫƬƭƮƯưƱƲƳƴƵƶƷƸƹƺƻƼƽƾƿǀǁǂǃǄǅǆǇǈǉǊǋǌǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǝǞǟǠǡǢǣǤǥǦǧǨǩǪǫǬǭǮǯǰǱǲǳǴǵǶǷǸǹǺǻǼǽǾǿȀȁȂȃȄȅȆȇȈȉȊȋȌȍȎȏȐȑȒȓȔȕȖȗȘșȚțȜȝȞȟȠȡȢȣȤȥȦȧȨȩȪȫȬȭȮȯȰȱȲȳȴȵȶȷȸȹȺȻȼȽȾȿɀɁɂɃɄɅɆɇɈɉɊɋɌɍɎɏɐɑɒɓɔɕɖɗɘəɚɛɜɝɞɟɠɡɢɣɤɥɦɧɨɩɪɫɬɭɮɯɰɱɲɳɴɵɶɷɸɹɺɻɼɽɾɿʀʁʂʃʄʅʆʇʈʉʊʋʌʍʎʏʐʑʒʓʔʕʖʗʘʙʚʛʜʝʞʟʠʡʢʣʤʥʦʧʨʩʪʫʬʭʮʯʰʱʲʳʴʵʶʷʸʹʺʻʼʽʾʿˀˁ˂˃˄˅ˆˇˈˉˊˋˌˍˎˏːˑ˒˓˔˕˖˗˘˙˚˛˜˝˞˟ˠˡˢˣˤ˥˦˧˨˩˪˫ˬ˭ˮ˯˰˱˲˳˴˵˶˷˸˹˺˻˼˽˾˿̴̵̶̷̸̡̢̧̨̛̖̗̘̙̜̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̱̲̳̹̺̻̼͇͈͉͍͎̀́̂̃̄̅̆̇̈̉̊̋̌̍̎̏̐̑̒̓̔̽̾̿̀́͂̓̈́͆͊͋͌̕̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦͧͨͩͪͫͬͭͮͯ͘͜͟͢͝͞͠͡ͰͱͲͳʹ͵Ͷͷͺͻͼͽ;Ϳ΄΅Ά·ΈΉΊΌΎΏΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώϏϐϑϒϓϔϕϖϗϘϙϚϛϜϝϞϟϠϡϢϣϤϥϦϧϨϩϪϫϬϭϮϯϰϱϲϳϴϵ϶ϷϸϹϺϻϼϽϾϿЀЁЂЃЄЅІЇЈ");
 	REQUIRE( u1.is_well() );
 }
 
-TEST_CASE("UString", "[no_invalid_chars_allowed]")
+TEST_CASE("UString check throw", "[no_invalid_chars_allowed]")
 {
 /*
 	UString u1("\xff");
@@ -118,7 +126,7 @@ TEST_CASE("UString", "[no_invalid_chars_allowed]")
 
 // Новый тест
 // Проверяем запись min/max символа utf для 1-4 байтов. Итого - 8 проверок
-TEST_CASE("UString", "[min_max]")
+TEST_CASE("UString min max value check", "[min_max]")
 {
 	INFO("1-byte");
 	UString u1("");
@@ -142,7 +150,7 @@ TEST_CASE("UString", "[min_max]")
 	u1 = "\xf7\xbf\xbf\xbf";
 	REQUIRE(u1.length() == 1);
 }
-TEST_CASE("UString", "[iterator]")
+TEST_CASE("UString iterator test", "[iterator]")
 {
 	UString u1(U"Текст для теста [iterator]");
 	UString u2(U"ZZ[Текст для теста [iterator]]XX");
@@ -158,7 +166,7 @@ TEST_CASE("UString", "[iterator]")
 }
 
 // Новый тест. Проверка разыменованного значения при инкременте и декременте итератора
-TEST_CASE("UString", "[iterator_not_equal]")
+TEST_CASE("UString iterator compare", "[iterator_not_equal]")
 {
 	UString u1(U"Текст для теста [iterator_not_equal]");
 	auto i1 = u1.begin();
@@ -170,7 +178,7 @@ TEST_CASE("UString", "[iterator_not_equal]")
 	REQUIRE(i1 != i2);
 }
 
-TEST_CASE("UString", "[reverse][iterator]")
+TEST_CASE("UString reverse iterator", "[reverse][iterator]")
 {
 	UString u1(U"Текст 2 для теста テキストをテストします。#ﻼ");
 	UString u2(U"ﻼ#。すましトステをトスキテ атсет ялд 2 тскеТ");
@@ -181,7 +189,7 @@ TEST_CASE("UString", "[reverse][iterator]")
 	}
 }
 
-TEST_CASE("UString", "[iterator][name_with_increment]")
+TEST_CASE("UString inc iterator", "[iterator][name_with_increment]")
 {
 	UString u1(U"** Текст 3 для теста **");
 	auto i1 = u1.begin();
@@ -194,7 +202,7 @@ TEST_CASE("UString", "[iterator][name_with_increment]")
 }
 
 #ifdef DEBUG
-TEST_CASE("UString", "[iterator_limits]")
+TEST_CASE("UString check iterator bounds", "[iterator_limits]")
 {
 	UString u1(U"Текст для теста [iterator_limits] --");
 	UString u2(U"Текст для теста [iterator_limits] ++");
@@ -207,7 +215,7 @@ TEST_CASE("UString", "[iterator_limits]")
 }
 #endif
 
-TEST_CASE("UString", "[output]")
+TEST_CASE("UString output data", "[output]")
 {
 	UString u1(U"Текст для теста [output] テキストをテストします。#ﻼ ♂♀⚧👬👭𓀻 𓀼 𓀽 𓀾 𓀿 𓁀 𓁁 𓁂 𓁃 𓁄 𓁅 𓁆 𓁇 𓁈 𓁉 𓁊 𓁋 𓁌 𓁍 𓁎 𓁏");
 	std::stringstream ss;
