@@ -39,20 +39,36 @@ public:
 	UString(const UString& other)
 	{
 		data_ = other.data_;
+#ifdef DEBUG
+		debug_ = "Copy constructor UString(const UString& other)";
+#endif
 	}
 
 	// Конструктор для преобразования std::string -> UString
 	UString(const std::string &str)
 	{
-		// "Разная логика у конструктора от string и оператора присваивания"
-		//
-		// Меняем конструктор на более сложный вариант.
-		// Теперь невозможно выполнить инициализацию некорректными UTF8 символами, т.к.
-		// метод push_back выполняет входной контроль данных.
-		// Тест "[is_well]" пришлось переделать.
+		*this = str;
+	}
+
+	// Конструктор для преобразования std::u32string -> UString
+	UString(const std::u32string &str)
+	{
+		*this = str;
+	}
+
+	// Операторы
+	UString &operator +=(const UString &str) noexcept
+	{
+		data_ += str.data_;
+		return *this;
+	}
+
+	// Присваивание для типа std::string
+	UString &operator =(const std::string &str)
+	{
 		size_t len_ = str.length();
-		// Лишние операторы удалены
 		size_t s_len;
+		data_.clear();
 		for(size_t i = 0; i < len_; )
 		{
 			s_len = size();	// Выясняем текущий размер строки UTF в байтах
@@ -62,52 +78,15 @@ public:
 			else
 				i += size() - s_len;
 		}
-	}
-
-	// Конструктор для преобразования std::u32string -> UString
-	UString(const std::u32string &str)
-	{
-		// В данном методе невозможно сравнить что-то со строкой u32string, 
-		// т.к. класс не хранит строку в таком виде, а только в преобразованном,
-		// который выяснить заранее проблематично.
-		// Возможна ситуация, когда присваивание не поменяет результат, но
-		// код всё равно выполнится.
-		for(auto c: str)
-			push_back(c);
-	}
-
-	// Операторы
-	UString &operator +=(const UString &str) noexcept
-	{
-		data_ += str.data_; //правильный порядок
-		return *this;
-	}
-
-	// Присваивание для типа std::string
-	UString &operator =(const std::string &str)
-	{
-		if( data_ != str )
-		{
-			UString tmp(str);
-			*this = tmp;
-		}
-#ifdef		DEBUG
-		else
-			debug_ = "Skip assigment of the same text.";
-#endif
 		return *this;
 	}
 
 	// Присваивание для типа std::u32string
 	UString &operator =(const std::u32string &str)
 	{
-		UString tmp(str);
-		//data_ = tmp.data_;
-		// Копирование заменено на move
-		if( data_ != tmp.data_ )
-		{
-			*this = tmp;
-		}
+		data_.clear();
+		for(auto c: str)
+ 			push_back(c);
 		return *this;
 	}
 
