@@ -60,7 +60,7 @@ public:
 	}
 
 	// Операторы
-	UString &operator +=(const UString &str) noexcept
+	UString &operator +=(const UString &str) // noexcept -- возможно прерывание при очень длинных строках
 	{
 		data_ += str.data_;
 		return *this;
@@ -114,11 +114,10 @@ public:
 		if( data_ == other.data_ )
 			return *this;
 		data_ = other.data_;
-		std::copy(std::begin(other.data_), std::end(other.data_), std::begin(data_));
 		return *this;
 	}
 
-	UString operator +(const UString &rhs) noexcept
+	UString operator +(const UString &rhs) // noexcept -- возможно прерывание при очень длинных строках
 	{
 		*this += rhs;
 		return *this;
@@ -162,7 +161,7 @@ private:
 		return ret;
 	}
 public:
-	size_t length() const noexcept
+	size_t length() const
 	{
 		size_t ret = 0; // Возвращаемое значение
 		size_t it = 0;
@@ -181,15 +180,15 @@ public:
 	{
 		assert(k >= 1 && k <= 4);
 		size_t ret = 0;
-		size_t tmp;
+		size_t current_char_len; // Переменная tmp переименована
 		size_t len_ = data_.length();
 
 		for(size_t i = 0; i < len_;)
 		{
-			tmp = charlen(i);
-			if(tmp == k)
+			current_char_len = charlen(i);
+			if(current_char_len == k)
 				++ret;
-			i += tmp;
+			i += current_char_len;
 		}
 		return ret;
 	}
@@ -275,7 +274,7 @@ public:
 			data_.push_back((unsigned char) (kfirstBitMask + (utf32 & ksixRightBits)));
 	}
 
-	bool is_well() const noexcept
+	bool is_well() const
 	{
 		// Оптимизируем код, убирая повторы
 		size_t bytes;
@@ -318,7 +317,7 @@ public:
 		return true;
 	}
 
-	void clear() noexcept
+	void clear()
 	{
 		data_.erase(data_.begin(), data_.end());
 	}
@@ -339,7 +338,7 @@ public:
 		}
 
 		std::string::iterator last = data_.end() - 1;
-		std::string::iterator tmp = data_.begin();
+		std::string::iterator save_begin = data_.begin(); // Переменная tmp переименована
 		// assert нужен, чтобы исключить ситуацию, когда первый символ в data_
 		// соответствует продолжению длинного символа => начальный символ - отсутствует.
 		// Последний символ data_ может быть любым из диапазона допустимых кодов utf.
@@ -350,22 +349,22 @@ public:
 		/*
 		while ((*last &ktwoLeftBits) == kfirstBitMask)
 		{
-			assert(last != tmp);
+			assert(last != save_begin);
 			--last;
 		}
 		*/
 		// Вариант без assert в цикле:
-		while ((*last &ktwoLeftBits) == kfirstBitMask && last != tmp)
+		while ((*last &ktwoLeftBits) == kfirstBitMask && last != save_begin)
 		{
 			--last;
 		}
-		if((*last &ktwoLeftBits) == kfirstBitMask ) // && last == tmp
+		if((*last &ktwoLeftBits) == kfirstBitMask ) // && last == save_begin
 			throw std::runtime_error("Обнаружен некорректный utf-8 символ в начале строки.");
 
 		data_.erase(last, data_.end());
 	}
 
-	friend std::ostream &operator<<(std::ostream &os, const UString &s) noexcept
+	friend std::ostream &operator<<(std::ostream &os, const UString &s)
 	{
 		os << s.data_;
 		return os;
