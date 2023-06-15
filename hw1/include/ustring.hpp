@@ -29,6 +29,9 @@ class UString
 public:
 	UString() = default;
 
+/*
+	2 конструктора заменены на дефолтный. Это изменение потребовало сделать дефолтными и
+	операторы присваивания: копирующий и перемещающий.
 	// Перемещающий конструктор
 	UString(UString&& other)
 	{
@@ -46,6 +49,7 @@ public:
 		debug_ = "Copy constructor UString(const UString& other)";
 #endif
 	}
+*/
 
 	// Конструктор для преобразования std::string -> UString
 	UString(const std::string &str)
@@ -97,6 +101,7 @@ public:
 	}
 
 	// Перемещающий оператор присваивания
+/*
 	UString& operator =(UString&& other)
 	{
 		if( data_ == other.data_ )
@@ -116,6 +121,7 @@ public:
 		data_ = other.data_;
 		return *this;
 	}
+*/
 
 	UString operator +(const UString &rhs) // noexcept -- возможно прерывание при очень длинных строках
 	{
@@ -125,7 +131,7 @@ public:
 
 	bool operator ==(const UString &rhs) const noexcept
 	{
-		return this->data_ == rhs.data_;
+		return data_ == rhs.data_;
 	}
 
 	bool operator !=(const UString &rhs) const noexcept
