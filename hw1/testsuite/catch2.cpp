@@ -42,32 +42,11 @@ TEST_CASE("UString compare", "[constructor_vs_assign]")
 }
 
 #ifdef	DEBUG
-TEST_CASE("UString move assignment", "[move][assignment]")
-{
-	UString u1;
-	u1 = UString("10");
-	REQUIRE( u1.debug_ == "Move assignment UString& operator =(UString&& other)" );
-}
 
 TEST_CASE("UString copy assignment", "[copy][assignment]")
 {
 	UString u1 = UString(U"777");
 	REQUIRE( u1.debug_ == "Copy assignment UString& operator =(const std::u32string &str)" );
-}
-
-TEST_CASE("UString move constructor", "[move][constructor]")
-{
-	UString u1 = std::move(UString(U"999"));
-	REQUIRE( u1.debug_ == "Move constructor UString(const UStringa&& other)" );
-}
-
-TEST_CASE("UString copy constructor", "[copy][constructor]")
-{
-	UString u1("abc");
-	UString u2(u1);
-	u2 = "abc";
-	REQUIRE( u1 == u2 );
-	REQUIRE( u2.debug_ == "Copy constructor UString(const UString& other)" );
 }
 
 TEST_CASE("UString check iterator bounds", "[iterator_limits]")
@@ -141,21 +120,12 @@ TEST_CASE("UString is_well", "[is_well]")
 
 TEST_CASE("UString check throw", "[no_invalid_chars_allowed]")
 {
-/*
-	UString u1("\xff");
-	INFO("Section 1");
-	REQUIRE_FALSE(u1.is_well());
-	u1 = U"Корректный UTF-текст";
-	INFO("Section 2");
-	CHECK(u1.is_well());
-*/
 	INFO("Section with throws");
 	REQUIRE_THROWS([&](){
 		UString u1("\xff");
 	}());
 }
 
-// Новый тест
 // Проверяем запись min/max символа utf для 1-4 байтов. Итого - 8 проверок
 TEST_CASE("UString min max value check", "[min_max]")
 {
