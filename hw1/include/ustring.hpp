@@ -1,8 +1,7 @@
-#pragma once
-
 #include <iterator>
 #include <cassert>
 #include <iostream>
+#include <cstring>
 
 const unsigned char kfirstBitMask = 128;	// 0b1000'0000
 const unsigned char kSecondBitMask = 64;	// 0b0100'0000
@@ -10,128 +9,125 @@ const unsigned char kThirdBitMask  = 32;	// 0b0010'0000
 const unsigned char kfourthBitMask = 16;	// 0b0001'0000
 const unsigned char kfifthBitMask   = 8;	// 0b0000'1000
 
-const unsigned char ktwoLeftBits = 0xc0;
-const unsigned char kthreeLeftBits = 0xe0;
-const unsigned char kfourLeftBits = 0xf0;
-const unsigned char kfiveLeftBits = 0xf8;
+const unsigned char ktwoLeftBits    = 0xc0;	// 0b1100'0000
+const unsigned char kthreeLeftBits  = 0xe0;	// 0b1110'0000
+const unsigned char kfourLeftBits   = 0xf0;	// 0b1111'0000
+const unsigned char kfiveLeftBits   = 0xf8;	// 0b1111'1000
+
+const unsigned char kthreeRightBits = 0x07;	// 0b0000'0111
+const unsigned char kfourRightBits  = 0x0f;	// 0b0000'1111
+const unsigned char kfiveRightBits  = 0x1f;	// 0b0001'1111
+const unsigned char ksixRightBits   = 0x3f;	// 0b0011'1111
+
+const char32_t koneByteMaxValue    = 0x7f;
+const char32_t ktwoBytesMaxValue   = 0x7ff;
+const char32_t kthreeBytesMaxValue = 0xffff;
+const char32_t kfourBytesMaxValue  = 0x1fffff;
 
 class UString
 {
 public:
 	UString() = default;
-	UString(const std::string &str)
-	{
-		// "Разная логика у конструктора от string и оператора присваивания"
-		//
-		// Меняем конструктор на более сложный вариант.
-		// Теперь невозможно выполнить инициализацию некорректными UTF8 символами, т.к.
-		// метод push_back выполняет входной контроль данных.
-		// Тест "[is_well]" пришлось переделать.
 
-		if( data_ != str ) // Такое совпадение возможно только для пустой строки, но
-				   // ради унификации методов оставляем проверку.
-		{
-			size_t len_ = str.length();
-			data_.clear();
-			if( len_ > 0 )
-			{
-				for(size_t i = 0; i < len_; ++i )
-				{
-					push_back(str.substr(i));
-				}
-			}
-		}
+/*
+	2 конструктора заменены на дефолтный. Это изменение потребовало сделать дефолтными и
+	операторы присваивания: копирующий и перемещающий.
+	// Перемещающий конструктор
+	UString(UString&& other)
+	{
+		data_ = other.data_;
 #ifdef DEBUG
-		else
-			debug_ = "Skip assigment of the same text in constructor.";
+		debug_ = "Move constructor UString(const UStringa&& other)";
 #endif
 	}
 
+	// Копирующий конструктор
+	UString(const UString& other)
+	{
+		data_ = other.data_;
+#ifdef DEBUG
+		debug_ = "Copy constructor UString(const UString& other)";
+#endif
+	}
+*/
+
+	// Конструктор для преобразования std::string -> UString
+	UString(const std::string &str)
+	{
+		*this = str;
+	}
+
+	// Конструктор для преобразования std::u32string -> UString
 	UString(const std::u32string &str)
 	{
-		// В данном методе невозможно сравнить что-то со строкой u32string, 
-		// т.к. класс не хранит строку в таком виде, а только в преобразованном
-		// который выяснить заранее нельзя.
-		// Поэтому возможна ситуация, когда присваивание не поменяет результат, но
-		// код всё равно выполнится.
-		for(auto c: str)
-			push_back(c);
+		*this = str;
 	}
 
 	// Операторы
-	UString &operator +=(const UString &str)
+	UString &operator +=(const UString &str) // noexcept -- возможно прерывание при очень длинных строках
 	{
-//		assert(this);	
-		data_ += str.data_; //правильный порядок
+		data_ += str.data_;
 		return *this;
 	}
 
+	// Присваивание для типа std::string
 	UString &operator =(const std::string &str)
 	{
-		if( data_ != str )
+		size_t len_ = str.length();
+		size_t s_len;
+		data_.clear();
+		for(size_t i = 0; i < len_; )
 		{
-			size_t len_ = str.length();
-			data_.clear();
-			if( len_ > 0 )
-			{
-				size_t s_len;
-				for(size_t i = 0; i < len_; )
-				{
-					s_len = size();	// Выясняем текущий размер строки UTF в байтах
-					push_back(str.substr(i));
-					if (s_len == size()) // Размер не изменился
-						++i;
-					else
-						i += size() - s_len;
-				}
-			}
+			s_len = size();	// Выясняем текущий размер строки UTF в байтах
+			push_back(str.substr(i));
+			if (s_len == size()) // Размер не изменился
+				++i;
+			else
+				i += size() - s_len;
 		}
-#ifdef		DEBUG
-		else
-			debug_ = "Skip assigment of the same text.";
+		return *this;
+	}
+
+	// Присваивание для типа std::u32string
+	UString& operator =(const std::u32string &str)
+	{
+		data_.clear();
+		for(auto c: str)
+ 			push_back(c);
+#ifdef DEBUG
+		debug_ = "Copy assignment UString& operator =(const std::u32string &str)";
 #endif
 		return *this;
 	}
 
-	UString &operator =(const std::u32string &str)
+	UString operator +(const UString &rhs) // noexcept -- возможно прерывание при очень длинных строках
 	{
-		// то есть программа должна падать если мы копируем пустую строку?
-//		assert(!str.empty());
-		data_.clear();
-		for(auto c: str)
-		{
-			push_back(c);
-		}
+		*this += rhs;
 		return *this;
 	}
 
-	friend UString operator +(UString lhs, const UString &rhs)
+	bool operator ==(const UString &rhs) const noexcept
 	{
-		lhs += rhs;
-		return lhs;
+		return data_ == rhs.data_;
 	}
 
-	friend bool operator ==(const UString &lhs, const UString &rhs)
+	bool operator !=(const UString &rhs) const noexcept
 	{
-		return lhs.data_ == rhs.data_;
-	}
-
-	friend bool operator !=(const UString &lhs, const UString &rhs)
-	{
-		return !(lhs == rhs);
+		return !(*this == rhs);
 	}
 
 private:
 	// Методы
-	/*  0xxxxxxx = 1 байт  
-	    110xxxxx = 2 байта 10xxxxxx
-	    1110xxxx = 3 байта 10xxxxxx 10xxxxxx
-	    11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
+	/*  1 байт  0xxxxxxx
+	    2 байта 110xxxxx 10xxxxxx
+	    3 байта 1110xxxx 10xxxxxx 10xxxxxx
+	    4 байта 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 	*/
-	size_t charlen(size_t it) const // эффективнее передача по значению
+	size_t charlen(size_t& it) const
 	{
 		size_t ret;
 
+		assert( it < data_.length() );
 		if ((data_[it] & kfirstBitMask) == 0)
 			ret = 1;
 		else if ((data_[it] & kthreeLeftBits) == ktwoLeftBits)
@@ -167,27 +163,27 @@ public:
 	{
 		assert(k >= 1 && k <= 4);
 		size_t ret = 0;
-		size_t tmp;
+		size_t current_char_len; // Переменная tmp переименована
 		size_t len_ = data_.length();
 
 		for(size_t i = 0; i < len_;)
 		{
-			tmp = charlen(i);
-			if(tmp == k)
+			current_char_len = charlen(i);
+			if(current_char_len == k)
 				++ret;
-			i += tmp;
+			i += current_char_len;
 		}
 		return ret;
 	}
 
-	size_t size() const
+	size_t size() const noexcept
 	{
 		// Размер в байтах
 		return data_.length();
 	}
 
 private:
-	bool multibyte(unsigned char c) const // Продолжение символа utf8
+	bool multibyte(unsigned char c) const noexcept // Продолжение символа utf8
 	{
 		return c >= kfirstBitMask && c < ktwoLeftBits;
 	}
@@ -231,61 +227,34 @@ public:
 	// Метод разбирает codePoint и добавляет 1-4 символа в строку data_[]
 	void push_back(const char32_t utf32)
 	{
-		// Ликвидация повторов, указанных ниже, удлинняет текст программы и ухудшает читаемость
-/*
-		if(utf32 < 0x7f)
-		{ // 1 байт
-			data_.push_back((unsigned char) utf32);
-		}
-		else if(utf32 < 0x7ff)
-		{ // 2 байта
-			data_.push_back((unsigned char) (0xc0 + (utf32 >> 6)));			// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора
-		}
-		else if(utf32 < 0x10000)
-		{ // 3 байта
-			data_.push_back((unsigned char) (0xe0 + (utf32 >> 12)));		// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));	// 2 повтора
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора см.выше
-		}
-		else if(utf32 < 0x110000)
-		{ // 4 байта
-			data_.push_back((unsigned char) (0xf0 + (utf32 >> 18))); 		// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 12) & 0x3f))); 	// Уникальная строка
-			data_.push_back((unsigned char) (0x80 + ((utf32 >> 6) & 0x3f)));	// 2 повтора см.выше
-			data_.push_back((unsigned char) (0x80 + (utf32 & 0x3f)));		// 3 повтора см.выше
-		}
-		else 
-			throw std::runtime_error("Обнаружен некорректный utf-8 символ.");
-*/
 		size_t usize = 0;
 
-		if(utf32 <= kfirstBitMask)
+		if(utf32 <= koneByteMaxValue)
 		{ // 1 байт
 			data_.push_back((unsigned char) utf32);
 		}
-		else if(utf32 < 0x7ff)
+		else if(utf32 <= ktwoBytesMaxValue)
 		{ // 2 байта
 			data_.push_back((unsigned char) (ktwoLeftBits + (utf32 >> 6)));
 			usize = 2;
 		}
-		else if(utf32 < 0x10000)
+		else if(utf32 <= kthreeBytesMaxValue)
 		{ // 3 байта
 			data_.push_back((unsigned char) (kthreeLeftBits + (utf32 >> 12)));
 			usize = 3;
 		}
-		else if(utf32 < 0x110000)
+		else if(utf32 <= kfourBytesMaxValue)
 		{ // 4 байта
 			data_.push_back((unsigned char) (kfourLeftBits + (utf32 >> 18)));
-			data_.push_back((unsigned char) (kfirstBitMask + ((utf32 >> 12) & 0x3f)));
+			data_.push_back((unsigned char) (kfirstBitMask + ((utf32 >> 12) & ksixRightBits)));
 			usize = 4;
 		}
 		else 
 			throw std::runtime_error("Обнаружен некорректный utf-8 символ.");
 		if( usize >=3 )
-			data_.push_back((unsigned char) (kfirstBitMask + ((utf32 >> 6) & 0x3f)));
+			data_.push_back((unsigned char) (kfirstBitMask + ((utf32 >> 6) & ksixRightBits)));
 		if( usize >= 2 )
-			data_.push_back((unsigned char) (kfirstBitMask + (utf32 & 0x3f)));
+			data_.push_back((unsigned char) (kfirstBitMask + (utf32 & ksixRightBits)));
 	}
 
 	bool is_well() const
@@ -331,11 +300,19 @@ public:
 		return true;
 	}
 
-	void clear() // data_.erase(0, data_.end());
+	void clear()
 	{
 		data_.erase(data_.begin(), data_.end());
 	}
 
+	// Если строка пустая - сразу возврат
+	// Начинаем цикл с позиции data_.end() - 1 - т.е. последний символ в строке.
+	// Пока код символа соответствует продолжению 2..4-байтного UTF символа - смещаемся левее.
+	// Как только эта цепочка закончилась - мы либо оказались в голове длинного символа,
+	// либо на однобайтном символе. Его и всё, что после него удаляем из строки.
+	// В цикле last никогда не станет равен data_.begin(), т.к. в этом случае сначала прервётся цикл while
+	// потому что первый символ не может быть продолжением, push_back не пропустит такой код.
+	// Я не понимаю, в чём проблема?
 	void pop_back()
 	{
 		if (data_.empty())
@@ -344,11 +321,28 @@ public:
 		}
 
 		std::string::iterator last = data_.end() - 1;
+		std::string::iterator save_begin = data_.begin(); // Переменная tmp переименована
+		// assert нужен, чтобы исключить ситуацию, когда первый символ в data_
+		// соответствует продолжению длинного символа => начальный символ - отсутствует.
+		// Последний символ data_ может быть любым из диапазона допустимых кодов utf.
+		// Самым первым символом строки может быть либо однбайтный utf, либо "голова" многобайтного символа
+		// Можно сразу проверить начало строки на корректность, но при операции pop_back не всегда
+		// дело доходит до крайнего левого символа и эта операция будет избыточной.
+		// Если при удалении крайнего правого символа он был единственным - проверка состоится
+		/*
 		while ((*last &ktwoLeftBits) == kfirstBitMask)
 		{
-			assert(last != data_.begin());
+			assert(last != save_begin);
 			--last;
 		}
+		*/
+		// Вариант без assert в цикле:
+		while ((*last &ktwoLeftBits) == kfirstBitMask && last != save_begin)
+		{
+			--last;
+		}
+		if((*last &ktwoLeftBits) == kfirstBitMask ) // && last == save_begin
+			throw std::runtime_error("Обнаружен некорректный utf-8 символ в начале строки.");
 
 		data_.erase(last, data_.end());
 	}
@@ -363,17 +357,17 @@ public:
 	{
 public:
 		Iterator() noexcept: str_(), curr_pos_(0) {}
-		~Iterator() {}
+		~Iterator() noexcept {}
 		Iterator(UString *ptr) noexcept: str_(ptr) {}
 		Iterator(UString *ptr, size_t pos) noexcept: str_(ptr), curr_pos_(pos) {}
 
 		/*	
-			0xxxxxxx = 1 байт  
-			110xxxxx = 2 байта 10xxxxxx
-			1110xxxx = 3 байта 10xxxxxx 10xxxxxx
-			11110xxx = 4 байта 10xxxxxx 10xxxxxx 10xxxxxx
+			1 байт  0xxxxxxx
+	    		2 байта 110xxxxx 10xxxxxx
+	    		3 байта 1110xxxx 10xxxxxx 10xxxxxx
+	    		4 байта 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 		*/
-		char32_t operator* () const
+		char32_t operator* () const noexcept
 		{
 			char32_t codePoint = 0;
 			// Общие строки перемещены и таким образом код стал оптимальнее
@@ -387,23 +381,23 @@ public:
 					char thirdByte = str_->data_[curr_pos_+2];
 					if (firstByte & kfourthBitMask)
 					{ // 4 БАЙТА
-						codePoint = (firstByte & 0x07) << 18;		// 3 младших бита сдвигаем влево на 18 позиций
-						codePoint += (secondByte & 0x3f) << 12;		// 6 младших битов второго байта сдвигаем влево на 12
-						codePoint += (thirdByte & 0x3f) << 6;;		// 6 младших битов третьего байта сдвигаем влево на 6
+						codePoint = (firstByte & kthreeRightBits) << 18; // 3 младших бита сдвигаем влево на 18 позиций
+						codePoint += (secondByte & ksixRightBits) << 12; // 6 младших битов второго байта сдвигаем влево на 12
+						codePoint += (thirdByte & ksixRightBits) << 6;;	 // 6 младших битов третьего байта сдвигаем влево на 6
 						char fourthByte = str_->data_[curr_pos_+3];
-						codePoint += (fourthByte & 0x3f);		// 6 младших битов четвёртого байта добавляем к итогу
+						codePoint += (fourthByte & ksixRightBits);	 // 6 младших битов четвёртого байта добавляем к итогу
 					}
 					else
 					{ // 3 БАЙТА
-						codePoint = (firstByte & 0x0f) << 12;		// 3 младших бита сдвигаем влево на 12 позиций
-						codePoint += (secondByte & 0x3f) << 6;		// 6 младших битов второго байта сдвигаем влево на 6
-						codePoint += (thirdByte & 0x3f);		// 6 младших битов третьего байта добавляем к итогу
+						codePoint = (firstByte & kfourRightBits) << 12;	 // 3 младших бита сдвигаем влево на 12 позиций
+						codePoint += (secondByte & ksixRightBits) << 6;	 // 6 младших битов второго байта сдвигаем влево на 6
+						codePoint += (thirdByte & ksixRightBits);	 // 6 младших битов третьего байта добавляем к итогу
 					}
 				}
 				else
 				{ // 2 БАЙТА
-					codePoint = (firstByte & 0x1f) << 6;			// 5 младших битов сдвигаем влево на 6
-					codePoint += (secondByte & 0x3f);			// 6 младших битов второго байта добавляем к итогу
+					codePoint = (firstByte & kfiveRightBits) << 6;		 // 5 младших битов сдвигаем влево на 6
+					codePoint += (secondByte & ksixRightBits);		 // 6 младших битов второго байта добавляем к итогу
 				}
 			}
 			else
@@ -414,7 +408,7 @@ public:
 			return codePoint;
 		}
 public:
-		Iterator& operator++()
+		Iterator& operator++() noexcept
 		{ // Преинкремент
 //			assert(this);
 			assert(str_); // Проверяем существование родителя
@@ -429,7 +423,7 @@ public:
 			return *this;
 		}
 
-		Iterator operator++(int)
+		Iterator operator++(int) noexcept
 		{ // Постинкремент
 //			assert(this);
 			assert(str_); // Проверяем существование родителя
@@ -438,7 +432,7 @@ public:
 			return save_pos_; // Возвращаем запомненное значение
 		}
 
-		Iterator& operator--()
+		Iterator& operator--() noexcept
 		{ // Предекремент
 //			assert(this);
 			assert(str_); // Проверяем существование родителя
@@ -471,7 +465,7 @@ public:
 			return *this;
 		}
 
-		Iterator operator--(int)
+		Iterator operator--(int) noexcept
 		{ // Постдекремент
 //			assert(this);
 			assert(str_); // Проверяем существование родителя
@@ -480,20 +474,20 @@ public:
 			return save_pos_; // Возвращаем запомненное значение
 		}
 
-		bool operator==(const Iterator& rhs) const { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
-		bool operator!=(const Iterator& rhs) const { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
+		bool operator ==(const Iterator& rhs) const noexcept { return str_ ==  rhs.str_ && curr_pos_ == rhs.curr_pos_; }
+		bool operator !=(const Iterator& rhs) const noexcept { return str_ !=  rhs.str_ || curr_pos_ != rhs.curr_pos_; }
 	private: // модификатор относится только к двум переменным ниже
 		UString * str_;
 		size_t curr_pos_ = 0; // Текущая позиция итератора в utf8 строке
 	};
 	// продолжение публичной секции
-	Iterator begin()
+	Iterator begin() noexcept
 	{
 //		assert(this);
 		return Iterator(this);
 	}
 
-	Iterator end()
+	Iterator end() noexcept
 	{
 //		assert(this);
 		return Iterator(this, data_.length()); // Вызываем конструктор итератора за последний символ
@@ -501,7 +495,7 @@ public:
 	// ~UString() {} // Деструктор по-умолчанию подходит.
 
 private:
-	std::string data_;
+	std::string data_ = "";
 #ifdef	DEBUG
 public:
 	std::string debug_;
