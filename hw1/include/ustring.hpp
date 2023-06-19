@@ -100,29 +100,6 @@ public:
 		return *this;
 	}
 
-	// Перемещающий оператор присваивания
-/*
-	UString& operator =(UString&& other)
-	{
-		if( data_ == other.data_ )
-			return *this;
-		data_ = other.data_;
-#ifdef DEBUG
-		debug_ = "Move assignment UString& operator =(UString&& other)";
-#endif
-		return *this;
-	}
-
-	// Копирующий оператор присваивания
-	UString& operator =(const UString& other)
-	{
-		if( data_ == other.data_ )
-			return *this;
-		data_ = other.data_;
-		return *this;
-	}
-*/
-
 	UString operator +(const UString &rhs) // noexcept -- возможно прерывание при очень длинных строках
 	{
 		*this += rhs;
